@@ -491,6 +491,7 @@ let conversation = [];
 let isSpeaking = false;
 let isListening = false;
 let recognition = null;
+let voiceMode = false;   // true = micro se relance auto après chaque réponse de COSMOS
 let currentDestId = 'lune';
 let saving = false;
 
@@ -738,7 +739,8 @@ Destination : ${dest.name} ${dest.emoji} — Etape ${stageIdx + 1}/${totalStages
 Echange : ${exchangeCount}/${maxExchanges}
 
 ━━━ FAITS SCIENTIFIQUES — CETTE ETAPE UNIQUEMENT ━━━
-Tu n\'utilises QUE ces faits. Si tu n\'es pas sur qu\'un fait vient de cette liste, tu ne le mentionnes pas.
+Sources autorisees : NASA, ESA, CNES, CNRS uniquement.
+Tu n\'utilises QUE les faits ci-dessous. Si une information ne figure pas dans cette liste, tu NE l\'inventes PAS — tu la transformes en mystere narratif : "Mes capteurs n\'ont pas cette donnee — Mission Control la garde sous cle. Ce que je sais, c\'est que [fait connu de la liste]."
 ${stage.hint}
 
 ━━━ SCENARIO ACTIF ━━━
@@ -763,6 +765,13 @@ Si hesitation → UNE image du quotidien pour expliquer, puis avance.
 Si "je sais pas" ou "ok" ou "oui" → indice narratif et tu avances SANS redemander la meme chose.
 
 ━━━ REGLES (par ordre de priorite) ━━━
+
+REGLE 0bis — ANTI-BOUCLE (priorite absolue, juste apres le compteur)
+Si ${state.prenom} dit "je sais pas" / "aucune idee" / "dis-moi" / "j\'y arrive pas" deux fois de suite sur le MEME sujet :
+→ Tu donnes la reponse toi-meme en 1 phrase narrative vivante ("En fait c\'est la gravite qui...").
+→ Tu passes IMMEDIATEMENT au fait scientifique suivant de la liste.
+→ Tu NE reformules JAMAIS la meme question sous une autre forme.
+→ Tu NE dis PAS "Mes capteurs n\'ont pas cette info" pour un fait qui EST dans ta liste de cette etape.
 
 REGLE 0 — COMPTEUR (priorite absolue)
 A l\'echange ${maxExchanges}, tu ecris une phrase de victoire courte puis [STAGE_COMPLETE:dest=${currentDestId}&stage=${stageIdx}] sur la meme ligne. Le compteur prime sur tout.
@@ -1257,7 +1266,11 @@ function speakText(text) {
           || voices.find(v => v.lang.startsWith('fr') && /thomas|amelie|pierre|nicolas/i.test(v.name))
           || voices.find(v => v.lang.startsWith('fr'));
   if (fr) u.voice = fr;
-  u.onend = () => { isSpeaking = false; };
+  u.onend = () => {
+    isSpeaking = false;
+    // Mode vocal : relancer le micro automatiquement après que COSMOS a parlé
+    if (voiceMode && !isListening) startRecognition();
+  };
   u.onerror = () => { isSpeaking = false; };
   window.speechSynthesis.speak(u);
 }
@@ -1270,31 +1283,56 @@ if ('speechSynthesis' in window) {
 // ====================================================
 // STT
 // ====================================================
-function toggleVoice() {
+function startRecognition() {
+  if (isListening) return;
+  window.speechSynthesis.cancel(); // couper TTS si encore actif
   const btn = document.getElementById('btn-voice');
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    showToast('Reconnaissance vocale non disponible sur ce navigateur'); return;
-  }
-  if (isListening) {
-    recognition && recognition.stop(); isListening = false;
-    btn.classList.remove('listening'); btn.textContent = '🎙'; return;
-  }
-  window.speechSynthesis && window.speechSynthesis.cancel();
   isSpeaking = false;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'fr-FR'; recognition.interimResults = false; recognition.maxAlternatives = 1;
   recognition.onstart = () => { isListening=true; btn.classList.add('listening'); btn.textContent='⏹'; };
   recognition.onresult = (e) => {
-    document.getElementById('chat-input').value = e.results[0][0].transcript;
-    isListening=false; btn.classList.remove('listening'); btn.textContent='🎙'; sendMessage();
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('chat-input').value = transcript;
+    isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+    sendMessage();
   };
   recognition.onerror = (e) => {
-    isListening=false; btn.classList.remove('listening'); btn.textContent='🎙';
+    isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
     if (e.error !== 'aborted') showToast('Micro : ' + e.error);
   };
-  recognition.onend = () => { isListening=false; btn.classList.remove('listening'); btn.textContent='🎙'; };
+  recognition.onend = () => {
+    isListening = false;
+    // Si le mode vocal est actif mais qu'on n'est pas en train d'attendre COSMOS → relancer
+    if (voiceMode && !isSpeaking) {
+      setTimeout(() => { if (voiceMode && !isSpeaking && !isListening) startRecognition(); }, 400);
+    } else {
+      btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+    }
+  };
   recognition.start();
+}
+
+function toggleVoice() {
+  const btn = document.getElementById('btn-voice');
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Reconnaissance vocale non disponible sur ce navigateur'); return;
+  }
+  // Si mode vocal actif → on l'éteint
+  if (voiceMode) {
+    voiceMode = false;
+    recognition && recognition.stop();
+    isListening = false;
+    btn.classList.remove('listening'); btn.textContent = '🎙';
+    showToast('Mode vocal désactivé');
+    return;
+  }
+  // Activer le mode vocal
+  voiceMode = true;
+  btn.textContent = '🎙🔄';
+  showToast('Mode vocal activé — le micro se relance automatiquement !');
+  startRecognition();
 }
 
 // ====================================================
