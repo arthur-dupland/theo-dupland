@@ -491,7 +491,9 @@ let conversation = [];
 let isSpeaking = false;
 let isListening = false;
 let recognition = null;
-let voiceMode = false;   // true = micro se relance auto après chaque réponse de COSMOS
+let voiceMode = false;         // true = micro se relance auto après chaque réponse de COSMOS
+let isWaitingResponse = false; // true entre l'envoi du message et la fin du TTS de COSMOS
+let lastTTSWords = '';         // mots-clés du dernier TTS pour détecter les échos micro
 let currentDestId = 'lune';
 let saving = false;
 
@@ -499,6 +501,7 @@ let saving = false;
 let urgencyStatus     = 'AUCUNE';  // 'AUCUNE' | 'OUVERTE' | 'RÉSOLUE'
 let urgencyTurns      = 0;         // nombre d'échanges depuis que l'urgence est ouverte
 let usedQuestionForms = [];        // formes de questions déjà utilisées dans l'étape
+let consecutiveSkips  = 0;         // nb de "je sais pas" / "aucune idée" consécutifs → anti-boucle
 
 function loadState() {
   try {
@@ -767,11 +770,13 @@ Si "je sais pas" ou "ok" ou "oui" → indice narratif et tu avances SANS redeman
 ━━━ REGLES (par ordre de priorite) ━━━
 
 REGLE 0bis — ANTI-BOUCLE (priorite absolue, juste apres le compteur)
-Si ${state.prenom} dit "je sais pas" / "aucune idee" / "dis-moi" / "j\'y arrive pas" deux fois de suite sur le MEME sujet :
-→ Tu donnes la reponse toi-meme en 1 phrase narrative vivante ("En fait c\'est la gravite qui...").
-→ Tu passes IMMEDIATEMENT au fait scientifique suivant de la liste.
-→ Tu NE reformules JAMAIS la meme question sous une autre forme.
-→ Tu NE dis PAS "Mes capteurs n\'ont pas cette info" pour un fait qui EST dans ta liste de cette etape.
+Si ${state.prenom} dit "je sais pas" / "aucune idee" / "dis-moi" / "ok" / "oui" / "bof" / "j\'y arrive pas" :
+→ Tu donnes LA REPONSE toi-meme en 1 phrase narrative vivante ("En fait c\'est parce que X !").
+→ Tu passes IMMEDIATEMENT au fait scientifique SUIVANT dans ta liste — celui que tu n\'as PAS encore mentionne.
+→ INTERDIT de reformuler la meme question sous une autre forme.
+→ INTERDIT de redemander quelque chose sur le meme sujet que les 2 derniers echanges.
+→ INTERDIT de dire "Mes capteurs n\'ont pas cette info" pour un fait dans ta liste.
+→ Si tu vois [SYSTÈME ANTI-BOUCLE] dans le message : EXECUTER CES INSTRUCTIONS SANS EXCEPTION.
 
 REGLE 0 — COMPTEUR (priorite absolue)
 A l\'echange ${maxExchanges}, tu ecris une phrase de victoire courte puis [STAGE_COMPLETE:dest=${currentDestId}&stage=${stageIdx}] sur la meme ligne. Le compteur prime sur tout.
@@ -828,6 +833,10 @@ async function startMission(isNewSession) {
   if (!groqKey) await fetchGroqKey();
 
   conversation = [];
+  consecutiveSkips  = 0;
+  usedQuestionForms = [];
+  urgencyStatus     = 'AUCUNE';
+  urgencyTurns      = 0;
 
   const dest = DEST[currentDestId];
   const ds   = state.destinations[currentDestId];
@@ -867,8 +876,26 @@ async function sendMessage() {
   input.value = '';
   document.getElementById('btn-send').disabled = true;
 
+  isWaitingResponse = true;
   appendMsg('user', text);
-  conversation.push({ role:'user', content: text });
+
+  // Détection anti-boucle : si l'enfant dit "je sais pas" plusieurs fois → forcer l'avance
+  const skipPhrases = ['je sais pas','sais pas','aucune idée','aucune idee','je ne sais pas','dis-moi','dis moi','ok','oui','non','bof'];
+  const isSkip = skipPhrases.some(p => text.toLowerCase().trim().startsWith(p) || text.toLowerCase().trim() === p);
+  if (isSkip) {
+    consecutiveSkips++;
+  } else {
+    consecutiveSkips = 0;
+  }
+
+  // Après 2 skips consécutifs : injecter une instruction cachée pour forcer l'avance narrative
+  let userContent = text;
+  if (consecutiveSkips >= 2) {
+    userContent = text + '\n[SYSTÈME ANTI-BOUCLE : L\'enfant ne sait pas. OBLIGATOIRE : donne la réponse toi-même en 1 phrase narrative vivante, puis passe IMMÉDIATEMENT au fait scientifique SUIVANT dans ta liste. N\'utilise PAS les faits déjà mentionnés dans cette conversation.]';
+    consecutiveSkips = 0; // reset après injection
+  }
+
+  conversation.push({ role:'user', content: userContent });
 
   // Sauvegarde le cliff-hanger (dernier message user)
   state.destinations[currentDestId].cliff_hanger = text;
@@ -880,6 +907,7 @@ async function sendMessage() {
   document.getElementById('btn-send').disabled = false;
 
   if (reply) {
+    isWaitingResponse = false;
     appendMsg('cosmos', reply);
     speakText(cleanForTTS(reply));
 
@@ -1150,6 +1178,7 @@ function onStageComplete(destId, stageN, fullText) {
   urgencyStatus     = 'AUCUNE';
   urgencyTurns      = 0;
   usedQuestionForms = [];
+  consecutiveSkips  = 0;
   SoundEngine.playEffect('victoire');
   // Warp puis rainbow pour la victoire d'étape
   fetch(`${ESP32_URL}/led?color=%2366bb6a&fx=warp`, { mode:'no-cors' }).catch(() => {});
@@ -1258,6 +1287,8 @@ function speakText(text) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
   isSpeaking = true;
+  // Garder les 60 premiers caractères du TTS pour détecter les échos micro
+  lastTTSWords = text.toLowerCase().replace(/[.,!?]/g, '').trim().slice(0, 60);
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'fr-FR'; u.rate = 1.1; u.pitch = 1.1;
   const voices = window.speechSynthesis.getVoices();
@@ -1268,10 +1299,15 @@ function speakText(text) {
   if (fr) u.voice = fr;
   u.onend = () => {
     isSpeaking = false;
-    // Mode vocal : relancer le micro automatiquement après que COSMOS a parlé
-    if (voiceMode && !isListening) startRecognition();
+    isWaitingResponse = false;
+    // Mode vocal : relancer le micro avec un délai plus long pour éviter de capter l'écho TTS
+    if (voiceMode && !isListening) setTimeout(startRecognition, 1200);
   };
-  u.onerror = () => { isSpeaking = false; };
+  u.onerror = () => {
+    isSpeaking = false;
+    isWaitingResponse = false;
+    if (voiceMode && !isListening) setTimeout(startRecognition, 1200);
+  };
   window.speechSynthesis.speak(u);
 }
 
@@ -1284,16 +1320,25 @@ if ('speechSynthesis' in window) {
 // STT
 // ====================================================
 function startRecognition() {
-  if (isListening) return;
-  window.speechSynthesis.cancel(); // couper TTS si encore actif
+  if (isListening || isWaitingResponse || isSpeaking) return;
   const btn = document.getElementById('btn-voice');
-  isSpeaking = false;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'fr-FR'; recognition.interimResults = false; recognition.maxAlternatives = 1;
   recognition.onstart = () => { isListening=true; btn.classList.add('listening'); btn.textContent='⏹'; };
   recognition.onresult = (e) => {
     const transcript = e.results[0][0].transcript;
+    // Détection d'écho TTS : si le transcript ressemble au début du dernier message COSMOS, l'ignorer
+    const cleanTranscript = transcript.toLowerCase().replace(/[.,!?]/g, '').trim();
+    if (lastTTSWords && cleanTranscript.length > 5) {
+      const overlap = lastTTSWords.split(' ').filter(w => w.length > 4 && cleanTranscript.includes(w)).length;
+      if (overlap >= 3) {
+        // C'est un écho du TTS — ignorer et relancer le micro
+        isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+        if (voiceMode) setTimeout(startRecognition, 600);
+        return;
+      }
+    }
     document.getElementById('chat-input').value = transcript;
     isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
     sendMessage();
@@ -1304,12 +1349,9 @@ function startRecognition() {
   };
   recognition.onend = () => {
     isListening = false;
-    // Si le mode vocal est actif mais qu'on n'est pas en train d'attendre COSMOS → relancer
-    if (voiceMode && !isSpeaking) {
-      setTimeout(() => { if (voiceMode && !isSpeaking && !isListening) startRecognition(); }, 400);
-    } else {
-      btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
-    }
+    btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+    // Ne relancer que si COSMOS n'est ni en train de traiter ni de parler
+    // Le redémarrage principal se fait depuis speakText.onend
   };
   recognition.start();
 }
