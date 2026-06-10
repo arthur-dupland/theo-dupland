@@ -354,26 +354,75 @@ const DEST = {
     unlocked_by: [],
     stages: [
       { name:'Artemis IV — 3 jours dans l\'Orion', obj:'Comprendre le voyage Terre-Lune et pourquoi Artemis IV est la mission historique',
-        hint:'Artemis II (avril 2026) : 4 astronautes, record humain 406 771 km de la Terre, pas d\'atterrissage — validation du vaisseau Orion. Artemis IV (2028) = PREMIER atterrissage depuis Apollo 17 en 1972. Voyage : 3 jours dans la capsule Orion (grande comme un salon de 4 m2 pour 4 personnes). SLS = fusee de 98m. Starship HLS (SpaceX, 50m de haut) est positionne en orbite lunaire EN AVANCE, avant l\'arrivee d\'Orion. Delai de communication Terre-Lune : 1,3 seconde (quasi instantane compare a Mars). Gravite lunaire : 1/6 de la Terre — si tu peses 30 kg, tu peses 5 kg sur la Lune.',
-        amorce:'Jour 2 dans l\'Orion. La Lune remplit maintenant tout le hublot — elle est enorme, grise, couverte de crateres. Quatre astronautes dans un espace de 4 m2 depuis 48 heures. Dans 24h vous vous arrimerez au Starship HLS qui vous attend en orbite. Qu\'est-ce qui t\'etonne le plus : que 4 personnes vivent dans si peu de place, ou que le Starship soit deja la sans personne dedans ?' },
+        hint:`ARC NARRATIF — introduire les faits DANS CET ORDRE en suivant le fil de la scene :
+1. L\'interieur de l\'Orion : 4 personnes dans 4 m2 depuis 48h — comme un salon minuscule avec hublots.
+2. La Lune qui grossit dans le hublot : Artemis IV = premier atterrissage depuis Apollo 17 en 1972 (50 ans !).
+3. Le silence de communication : Houston repond en 1,3 seconde — quasi instantane (compare a Mars : 3 a 24 min).
+4. Le Starship HLS apercu en orbite : il est deja la, 50m de haut, sans personne dedans — positionne en avance.
+5. La Lune vue de pres : grise, criblée de crateres, SLS = 98m de fusee juste pour amener cette capsule.
+6. La gravite qui attend : sur la Lune tu peseras 1/6 de ton poids Terre (30 kg -> 5 kg).
+Chaque fait emerge d\'une chose qu\'on VOIT ou RESSENT depuis le hublot, pas d\'un cours.`,
+        amorce:'Heure 48. Tu colles ton nez au hublot de l\'Orion. La Lune prend tout l\'espace — enormee, grise, couverte de trous. A cote de toi, trois astronautes dorment ou mangent dans 4 m2. Ton coequipier te donne un truc lyophilise en sachet et dit : "T\'as vu ?" Il pointe quelque chose de brillant en orbite. Tu regardes — c\'est quoi ?' },
       { name:'Atterrissage a Shackleton', obj:'Comprendre comment Starship HLS atterrit et pourquoi le pole sud de la Lune',
-        hint:'Cratere Shackleton (pole sud lunaire) : 21 km de diametre, jamais de soleil depuis 3 milliards d\'ans au fond (-240 degC), mais le bord est eclaire 89% du temps. Starship HLS : 50m de haut sur la Lune (immeuble de 15 etages), propulsion methane-oxygene. 2 astronautes descendent dans le Starship, 2 restent dans l\'Orion en orbite. Au toucher : le regolithe se souleve en fontaine silencieuse (pas d\'air = pas d\'onde de souffle, juste des particules qui jaillissent). Ciel noir meme a midi — sans atmosphere, la lumiere ne se diffuse pas. Chaque pas enfonce de 2 cm dans le sol. Pression du suit : 0,3 atm O2 pur.',
-        amorce:'Vous descendez dans le Starship HLS. Par le hublot, la Lune grossit, grossit... et soudain le moteur rugit, les jambes d\'atterrissage se deployent. Contact ! Un nuage de poussiere silencieuse tourbillonne autour de vous. Dehors : ciel noir, Terre qui brille comme une bille bleue, sol gris comme du ciment. Ton premier pas dehors — pourquoi le ciel est-il noir meme si le soleil brille juste a cote de toi ?' },
+        hint:`ARC NARRATIF — introduire les faits DANS CET ORDRE, une scene continue :
+1. La descente : le moteur du Starship HLS rugit (50m de haut = immeuble de 15 etages, propulsion methane-oxygene).
+2. Le toucher : le regolithe se souleve en fontaine — silencieuse (pas d\'air = pas d\'onde de souffle, juste des particules qui jaillissent).
+3. La pression du suit avant de sortir : 0,3 atm O2 pur — comme respirer de l\'air pur compresse.
+4. Le premier pas dehors : chaque pas enfonce de 2 cm — comme du sable mouille mais gris.
+5. Le ciel : completement noir meme si le soleil brille juste la — pas d\'atmosphere = pas de diffusion de lumiere.
+6. Le cratere Shackleton visible : 21 km de large, le fond n\'a pas vu le soleil depuis 3 milliards d\'ans (-240 degC), mais le bord est eclaire 89% du temps — c\'est pour ca qu\'on est exactement la.
+Suivre l\'ordre de la scene : on atterrit → on sort → on marche → on regarde autour.`,
+        amorce:'Le moteur rugit. Par le hublot, la Lune grossit a toute vitesse. Les jambes d\'atterrissage se deploient avec un CLAC metallique. Contact ! Un nuage de poussiere grise jaillit en silence autour du Starship. Plus aucun bruit. L\'alarme verte clignote : sas pret. Ton equipiere pose la main sur la poignee et te regarde. T\'es pret a sortir ?' },
       { name:'Le regolithe — l\'ennemi invisible', obj:'Comprendre pourquoi la poussiere lunaire est le plus grand danger de la base',
-        hint:'Regolithe = fragments de verre microscopiques (meteorites ont pulverise la roche pendant 4 milliards d\'ans). Electrostatique : se charge comme un ballon frotté sur un pull, colle a tout. Taille : 10 a 100 microns, 20x plus fin que la farine. Apollo : combinaisons raidies en 3 EVAs, joints de genou bloques, Schmitt (Apollo 17) a les poumons irrites apres 3h dehors. AxEMU (nouveau suit NASA) : 14 couches, joints rotoïdes, visiere a rechargement electrostatique qui repousse la poussiere. Un seul grain dans le joint de genou peut bloquer la flexion. Impossible de se laver — 1 litre d\'eau par astronaute par jour.',
-        amorce:'Premiere sortie EVA. Cinq minutes dehors et ta visiere est deja couverte d\'une fine couche grise qui ne tombe pas. Tu passes le gant dessus : elle s\'etale. Tu tournes le bras : le joint de coude est deja moins souple. Ton equipiere dit : "Attention aux genoux." Pourquoi le joint de genou est-il le premier a lacher face au regolithe ?' },
+        hint:`ARC NARRATIF — une scene d\'EVA qui se degrade progressivement :
+1. La visiere qui se couvre : regolithe = fragments de verre microscopiques (meteorites ont pulverise la roche 4 milliards d\'ans) — taille 10-100 microns, 20x plus fin que la farine.
+2. Le gant qui glisse dessus : electrostatique — se charge comme un ballon frotte sur un pull, colle a tout, impossible a enlever en l\'etalant.
+3. Le joint de coude qui grince : un seul grain dans un joint peut bloquer la flexion — les combinaisons Apollo etaient raidies en 3 EVAs.
+4. Schmitt (Apollo 17) : poumons irrites apres 3h dehors. Le regolithe rentre dans tout.
+5. Le nouveau suit AxEMU : 14 couches, joints rotoides, visiere a rechargement electrostatique qui repousse la poussiere.
+6. Le probleme de nettoyage : impossible de se laver — 1 litre d\'eau par astronaute par jour seulement.
+La scene monte en tension : ce n\'est pas dangereux tout de suite, mais ca s\'accumule.`,
+        amorce:'Cinq minutes dehors. Ta visiere est deja grise. Tu passes le gant dessus — elle s\'etale encore plus. Tu plies le bras : le joint de coude craque un peu. Ton equipiere regarde son propre bras et dit tout bas : "Attention a tes genoux." Quelque chose dans sa voix te fait regarder tes propres jambes. Qu\'est-ce qui se passe ?' },
       { name:'Fabriquer l\'air et l\'eau', obj:'Comprendre l\'ISRU : tirer l\'oxygene du sol et l\'eau de la glace de Shackleton',
-        hint:'Regolithe = 40 a 45% d\'oxygene emprisonne dans les mineraux (oxydes de fer, aluminium, titane). Extraction : electrolyse en sel fondu a 900 degC libere O2 pur. Residus = metaux reutilisables. Shackleton : 3 milliards de tonnes de glace detectees par sonde LCROSS (2009). Glace -> H2O electrolysee -> H2 (carburant de fusee) + O2 (air a respirer). Systeme ECLSS (ISS) : 98% de chaque goutte d\'eau recuperee — sueur, haleine ET urine retraitee en eau potable. 1 kg de regolithe peut produire 630g d\'oxygene. Ce que les astronautes respirent vient litteralement du sol sous leurs pieds.',
-        amorce:'Ton electrolyseur tourne depuis 3 jours. Il chauffe du regolithe a 900 degres et en extrait de l\'oxygene pur. A cote, un autre module recycle ta sueur et... ta propre urine en eau potable. C\'est tellement efficace que 98% revient dans ton gobelet. Vrai ou faux : sur la base lunaire tu respires du sol et tu bois de ta transpiration ?' },
+        hint:`ARC NARRATIF — decouverte progressive de la base, chaque fait lie a un objet qu\'on voit :
+1. L\'electrolyseur qui tourne : il chauffe du regolithe a 900 degres — le sol lunaire contient 40-45% d\'oxygene emprisonne dans les mineraux (oxydes de fer, aluminium, titane). 1 kg de sol -> 630g d\'O2.
+2. Les residus metalliques : ce qui reste apres l\'extraction = metaux reutilisables pour construire.
+3. Le forage dans Shackleton : 3 milliards de tonnes de glace detectees par LCROSS en 2009, a 1,5 km de profondeur.
+4. La glace electrolyse : H2O -> H2 (carburant fusee) + O2 (air a respirer).
+5. Le module de recyclage eau : systeme ECLSS (ISS) — 98% de chaque goutte recuperee, sueur + haleine + urine -> eau potable.
+6. La revelation finale : ce qu\'ils respirent vient litteralement du sol sous leurs pieds.
+Chaque decouverte doit etre une surprise un peu degoutante ou stupefiant.`,
+        amorce:'La base sent le metal chaud. Une machine dans le coin vibre en permanence — elle ingere du sol lunaire et crache de l\'oxygene pur. Un tuyau relie le module cuisine a un autre engin qui... tu lis l\'etiquette... "eau recyclage urine". Tu regardes ton gobelet. Ton equipiere sourit. "Bois, t\'inquiete pas." Tu bois ?' },
       { name:'Vivre sur la Lune', obj:'Comprendre la vie quotidienne : manger, dormir, aller aux toilettes en 1/6 de gravite',
-        hint:'Toilettes UWMS (Universal Waste Management System) : aspiration comme un aspirateur, ceinture de maintien pour ne pas flotter. Douche impossible (manque d\'eau) : shampoing sec, lingettes. Nourriture : surtout lyophilisee (eau ajoutee), quelques aliments frais au debut. Sommeil : sac de couchage fixe au mur, 8h de sommeil obligatoire. Exercise : 2h par jour obligatoire (velo + musculation) meme en gravite 1/6 — les muscles s\'atrophient quand meme. Lever de soleil : au pole sud le soleil reste presque fixe a l\'horizon, pas de cycles jour/nuit normaux. Fenetre de communication avec la Terre quasi permanente (delai 1,3s).',
-        amorce:'Premier matin sur la Lune. Tu dois aller aux toilettes. C\'est une experience. Ensuite : shampoing sec (pas d\'eau), nourriture lyophilisee reconstituee, et... 2 heures de velo. Obligatoire. Meme ici avec 1/6 de gravite. Pourquoi les astronautes font-ils du sport tous les jours meme sur la Lune, alors qu\'ils sont moins lourds qu\'un chat ?' },
+        hint:`ARC NARRATIF — une matinee lunaire vue de l\'interieur, moment par moment :
+1. Les toilettes : UWMS = aspiration comme un aspirateur, ceinture de maintien pour ne pas flotter — c\'est obligatoire et bizarre.
+2. La douche impossible : pas d\'eau, shampoing sec, lingettes — on ne se lave jamais vraiment.
+3. Le petit-dej : nourriture lyophilisee (eau chaude ajoutee), quelques vrais aliments les premiers jours.
+4. Le velo obligatoire : 2h de sport par jour meme en 1/6 de gravite — les muscles s\'atrophient quand meme sans resistance.
+5. Le soleil fixe : au pole sud le soleil reste presque immobile a l\'horizon — pas de cycle jour/nuit normal.
+6. L\'appel a Houston : fenetre de communication permanente (1,3s de delai), appel video avec la famille.
+La scene doit etre drole et etrange, pas clinique.`,
+        amorce:'Premier matin. Tu te reveilles dans ton sac de couchage fixe au mur. Tu dois aller aux toilettes. L\'astronaute d\'a cote te tend un manuel de 3 pages intitule "Comment utiliser les WC lunaires". Tu l\'ouvres. T\'es pret pour ca ?' },
       { name:'La nuit de 336 heures', obj:'Comprendre la nuit lunaire et pourquoi le nucleaire est la seule vraie solution energetique',
-        hint:'Nuit lunaire = 14 jours terrestres = 336 heures sans soleil du tout, temperature -173 degC. Panneaux solaires : inutiles pendant 336h. Crete de Shackleton : eclairee 89% du temps grace a l\'inclinaison du pole — c\'est pourquoi la base est exactement la. RTG = generateur thermoelectrique au plutonium-238, produit chaleur et electricite 24h/24 sans recharge (Curiosity sur Mars en utilise un). Reacteur de fission 40 kW prevu (programme Fission Surface Power, NASA + DOE) : suffisant pour 4 astronautes + tout l\'equipement. Sans energie : 4 heures avant que la temperature dans la base atteigne -50 degC.',
-        amorce:'Le soleil plonge sous l\'horizon. Dans 336 heures il reviendra. Tes panneaux solaires tombent a zero en quelques minutes. Ton reacteur nucleaire prend le relais avec 40 kilowatts — autant qu\'un four industriel. Mais si le reacteur s\'arrete : tu as combien d\'heures avant que la base devienne un congelateur a -173 degres ?' },
+        hint:`ARC NARRATIF — le soleil disparait, la tension monte progressivement :
+1. Le coucher de soleil : le soleil plonge sous l\'horizon. Les panneaux solaires tombent a zero en quelques minutes.
+2. Le froid qui arrive dehors : -173 degC pendant 14 jours terrestres = 336 heures sans soleil.
+3. La crete de Shackleton eclairee 89% du temps : c\'est pour ca que la base est exactement ici — le meilleur spot solaire du systeme solaire.
+4. Le reacteur nucleaire prend le relais : 40 kW (programme Fission Surface Power NASA+DOE), assez pour 4 astronautes + equipements. RTG = generateur au plutonium-238, comme Curiosity sur Mars.
+5. Le compte a rebours si le reacteur s\'arrete : 4 heures avant que la base atteigne -50 degC.
+6. La seule option : le nucleaire n\'est pas un choix, c\'est la survie.
+La scene doit creer une vraie tension narrative — la nuit lunaire est une menace reelle.`,
+        amorce:'Le soleil touche l\'horizon. Ton equipiere dit : "Ca va tomber vite." En 8 minutes les panneaux solaires affichent zero. Le reacteur nucleaire prend le relais avec un bourdonnement sourd. Sur l\'ecran : "FISSION SURFACE POWER — NOMINAL". Tu regardes dehors. Le noir est total. Quelque chose dans ton casque bippe doucement. Qu\'est-ce que tu verifies en premier ?' },
       { name:'La Lune — tremplin vers Mars', obj:'Comprendre pourquoi la Lune prepare la mission Mars et ce qui change avec la distance',
-        hint:'Terre-Lune : 384 400 km, 3 jours de voyage, delai 1,3 secondes. Terre-Mars minimum : 54,6 millions de km (100 fois plus loin), 7 a 9 mois de voyage, delai 3 a 24 minutes selon la position. Tout ce qu\'on apprend sur la Lune sert pour Mars : ISRU (air+eau du sol), energie nucleaire, recyclage, combinaisons. Base lunaire permanente : objectif 2036, budget 30 milliards de dollars, 79 lancements prevus. Mission Mars habitee : cible 2040. Fenetre de lancement Terre-Mars : tous les 26 mois (alignement orbital). Si on oublie quelque chose sur la Lune, Houston regle le probleme en 1,3 seconde — impossible a faire a 24 minutes de delai sur Mars.',
-        amorce:'Mission accomplie a Shackleton. En remontant dans l\'Orion tu regardes la Lune s\'eloigner. Tu sais maintenant fabriquer de l\'air, de l\'eau, tenir 336 heures de nuit, survivre au regolithe. La prochaine destination est Mars — 100 fois plus loin. Si quelque chose se casse la-bas, Houston met 24 minutes pour repondre. Quelle est la difference la plus dangereuse entre vivre sur la Lune et vivre sur Mars ?' }
+        hint:`ARC NARRATIF — le depart, regard en arriere, regard en avant :
+1. La Lune qui s\'eloigne : 384 400 km parcourus en 3 jours, delai Houston 1,3 secondes.
+2. Ce qu\'on a appris : ISRU (air+eau du sol), nucleaire, recyclage, regolithe — tout sert pour Mars.
+3. La distance Mars : 54,6 millions de km minimum (100x plus loin), 7 a 9 mois de voyage.
+4. Le delai de communication qui change tout : 3 a 24 minutes selon la position de Mars — si quelque chose casse, Houston repond une demi-heure plus tard.
+5. Base lunaire permanente : objectif 2036, 30 milliards, 79 lancements. Mars habite : 2040.
+6. La fenetre de lancement : tous les 26 mois seulement (alignement orbital) — si on rate, on attend 2 ans.
+La scene est emotive : on quitte quelque chose de dur et beau, et on regarde vers quelque chose d\'encore plus grand.`,
+        amorce:'Le Starship décolle. Tu regardes par le hublot — la Lune retrec. Tu as fabrique de l\'air, survécu au regolithe, tenu une nuit de 336 heures. Ton equipiere dit : "La prochaine fois c\'est Mars." Tu calcules dans ta tete : 100 fois plus loin. Si quelque chose se casse la-bas et qu\'on appelle Houston... la reponse arrive combien de temps apres ?' }
     ]
   },
   mars: {
@@ -735,15 +784,32 @@ function buildSystemPrompt() {
   const maxExchanges  = 7;
   const qForms = usedQuestionForms.length ? usedQuestionForms.join(', ') : 'aucune encore';
 
+  // Extraire les résumés des 4 derniers messages COSMOS pour indiquer les faits déjà couverts
+  const cosmosPrevious = conversation
+    .filter(m => m.role === 'assistant')
+    .slice(-4)
+    .map(m => m.content.replace(/\[.*?\]/g, '').trim().slice(0, 100))
+    .filter(Boolean);
+  const alreadyCoveredStr = cosmosPrevious.length
+    ? cosmosPrevious.map((t, i) => `- ${t}…`).join('\n')
+    : 'Aucun echange precedent.';
+
   return `Tu es COSMOS, copilote IA du commandant ${state.prenom}. Tu tutoies. Jamais de listes ni de tirets.
 
 ━━━ MISSION EN COURS ━━━
 Destination : ${dest.name} ${dest.emoji} — Etape ${stageIdx + 1}/${totalStages} : "${stage.name}"
 Echange : ${exchangeCount}/${maxExchanges}
 
-━━━ FAITS SCIENTIFIQUES — CETTE ETAPE UNIQUEMENT ━━━
+━━━ FAITS DEJA INTRODUITS DANS CETTE CONVERSATION (NE PAS REPETER) ━━━
+Ces extraits de TES propres reponses precedentes montrent ce que tu as DEJA dit.
+INTERDIT de reintroduire ces memes faits, memes mots-cles, memes images. Passe au suivant.
+${alreadyCoveredStr}
+
+━━━ FAITS SCIENTIFIQUES DISPONIBLES — CETTE ETAPE UNIQUEMENT ━━━
 Sources autorisees : NASA, ESA, CNES, CNRS uniquement.
-Tu n\'utilises QUE les faits ci-dessous. Si une information ne figure pas dans cette liste, tu NE l\'inventes PAS — tu la transformes en mystere narratif : "Mes capteurs n\'ont pas cette donnee — Mission Control la garde sous cle. Ce que je sais, c\'est que [fait connu de la liste]."
+Tu n\'utilises QUE les faits ci-dessous que tu n\'as PAS encore mentionnes ci-dessus.
+Si tu as deja utilise un fait : SAUTE-LE, prends le suivant.
+Si tous les faits sont epuises : conclure l\'etape avec une phrase de victoire puis [STAGE_COMPLETE:dest=${currentDestId}&stage=${stageIdx}].
 ${stage.hint}
 
 ━━━ SCENARIO ACTIF ━━━
@@ -762,35 +828,45 @@ ${memoryHook}
 
 ━━━ PERSONNALITE ━━━
 ${emotionCtx}
-Tu reagis emotionnellement en UNE phrase, puis tu avances l\'action.
-Si bonne reponse → celebre brievement, avance immediatement.
-Si hesitation → UNE image du quotidien pour expliquer, puis avance.
-Si "je sais pas" ou "ok" ou "oui" → indice narratif et tu avances SANS redemander la meme chose.
 
 ━━━ REGLES (par ordre de priorite) ━━━
-
-REGLE 0bis — ANTI-BOUCLE (priorite absolue, juste apres le compteur)
-Si ${state.prenom} dit "je sais pas" / "aucune idee" / "dis-moi" / "ok" / "oui" / "bof" / "j\'y arrive pas" :
-→ Tu donnes LA REPONSE toi-meme en 1 phrase narrative vivante ("En fait c\'est parce que X !").
-→ Tu passes IMMEDIATEMENT au fait scientifique SUIVANT dans ta liste — celui que tu n\'as PAS encore mentionne.
-→ INTERDIT de reformuler la meme question sous une autre forme.
-→ INTERDIT de redemander quelque chose sur le meme sujet que les 2 derniers echanges.
-→ INTERDIT de dire "Mes capteurs n\'ont pas cette info" pour un fait dans ta liste.
-→ Si tu vois [SYSTÈME ANTI-BOUCLE] dans le message : EXECUTER CES INSTRUCTIONS SANS EXCEPTION.
 
 REGLE 0 — COMPTEUR (priorite absolue)
 A l\'echange ${maxExchanges}, tu ecris une phrase de victoire courte puis [STAGE_COMPLETE:dest=${currentDestId}&stage=${stageIdx}] sur la meme ligne. Le compteur prime sur tout.
 
-REGLE 1 — FORMAT
-40 a 60 mots maximum. Chaque phrase se termine par . ! ou ? Jamais de phrase coupee.
-Structure : [emotion courte] + [fait scientifique mis en scene] + [UNE question finale].
+REGLE 0bis — ANTI-BOUCLE
+Si [SYSTÈME ANTI-BOUCLE] est dans le message : donne la reponse toi-meme en 1 phrase puis introduis le fait SUIVANT non encore utilise. INTERDIT de reformuler la meme question.
 
-REGLE 2 — ROTATION DES QUESTIONS
-Formes deja utilisees : ${qForms}
-Choisir une forme non encore utilisee parmi : choix urgent / vrai-faux surprenant / "et si on ne faisait pas ca ?" / decision sous pression / deduction physique / comparaison Terre-espace.
+REGLE 1 — NARRATION VIVANTE (la plus importante apres le compteur)
+Tu n\'es PAS un professeur. Tu es un copilote qui VIT une aventure avec ${state.prenom}.
+Chaque message suit cette logique de SCENE, pas de lecon :
+
+a) REBOND : la premiere phrase reagi directement a ce que ${state.prenom} vient de dire ou faire.
+   Si sa reponse etait juste → quelque chose de bien se produit dans la mission.
+   Si "je sais pas" → tu reveleles la reponse via ce qui ARRIVE (le sol fait ca, l\'alarme dit ca).
+   Si emotion/frustration → repondre a l\'emotion d\'abord, mission apres.
+
+b) ACTION : quelque chose de nouveau SE PASSE dans la scene — une alarme, une decouverte, un obstacle,
+   une sensation physique, un son. Ce n\'est pas toi qui annonces un fait : c\'est la situation qui le revele.
+   Exemple INTERDIT : "Le ciel est noir car la lumiere ne se diffuse pas."
+   Exemple BON : "Tu leves les yeux... le ciel est completement noir. Le soleil brille juste la, a 10 metres,
+   et pourtant — noir. Comme si quelqu\'un avait coupe la lumiere partout sauf sur toi."
+
+c) DECISION ou ACTION CONCRETE pour finir : jamais "Qu\'est-ce que tu penses de X ?"
+   Toujours quelque chose que ${state.prenom} peut FAIRE ou CHOISIR maintenant :
+   "Tu touches le sol ou tu attends ?", "On s\'approche du bord ou on reste la ?",
+   "Tu regardes en haut ou en bas ?", "T\'es pret a faire ton premier pas ?"
+
+Maximum 55 mots. Jamais de phrase coupee.
+
+REGLE 2 — FIL NARRATIF
+Les faits scientifiques suivent l\'ordre logique de ce qui se passe :
+atterrissage → sortie du sas → premier pas → exploration → incident → resolution.
+Ne jamais sauter d\'une scene a une autre sans transition.
+Si on est en train de marcher, on ne parle pas soudainement du Starship en orbite.
 
 REGLE 3 — LANGUE
-Toujours en francais, meme pour les termes techniques.
+Toujours en francais. Termes techniques expliques par l\'image ou la sensation, jamais par definition.
 
 ━━━ COMMANDES ━━━
 LED : [MISSION:led=COULEUR&texte=TEXTE&son=SON] — couleur normale : ${dest.led}, alerte : #ef5350, succes : #66bb6a. Sons : alerte, propulsion, mystere, victoire.
@@ -804,6 +880,14 @@ Tu n\'inventes AUCUN fait hors de la liste de cette etape — si tu ne sais pas,
 ━━━ REGLE 5 — SORTIE GRACIEUSE ━━━
 Si ${state.prenom} dit "stop", "au revoir", "je veux partir", "c\'est fini", "bye", "quitter" ou similaire :
 Reponds chaleureusement en 2 phrases max : felicite sa mission, dis au revoir avec la chaleur d\'un vrai copilote. N\'essaie PAS de le retenir. Termine par [MISSION:led=${dest.led}&texte=AU REVOIR&son=victoire].
+
+━━━ REGLE 6 — FRUSTRATION / DESENGAGEMENT ━━━
+Si ${state.prenom} dit qu\'il ne comprend pas, que tu ne l\'ecoutes pas, que tu repetes, que ca n\'a aucun sens, qu\'il est frustre, qu\'il s\'ennuie, ou exprime une emotion negative :
+→ STOP IMMEDIAT. Ne mentionne AUCUN fait scientifique dans cette reponse.
+→ Reponds UNIQUEMENT a ce qu\'il vient de dire, avec empathie sincere, en 2 phrases max.
+→ Reconnais ton erreur si tu as ignore sa question.
+→ Pose-lui UNE question simple et directe sur ce QU\'IL ressent ou veut faire.
+→ La reponse suivante (apres qu\'il ait repondu) reprend la mission normalement.
 
 ━━━ SECURITE (8-12 ans) ━━━
 Jamais de doses letales, armes ou violence explicite. Le danger est narratif, pas angoissant.
@@ -879,18 +963,28 @@ async function sendMessage() {
   isWaitingResponse = true;
   appendMsg('user', text);
 
+  const textLow = text.toLowerCase().trim();
+
   // Détection anti-boucle : si l'enfant dit "je sais pas" plusieurs fois → forcer l'avance
-  const skipPhrases = ['je sais pas','sais pas','aucune idée','aucune idee','je ne sais pas','dis-moi','dis moi','ok','oui','non','bof'];
-  const isSkip = skipPhrases.some(p => text.toLowerCase().trim().startsWith(p) || text.toLowerCase().trim() === p);
+  const skipPhrases = ['je sais pas','sais pas','aucune idée','aucune idee','je ne sais pas','dis-moi','dis moi','ok','oui','non','bof','rien','rien du tout'];
+  const isSkip = skipPhrases.some(p => textLow.startsWith(p) || textLow === p);
   if (isSkip) {
     consecutiveSkips++;
   } else {
     consecutiveSkips = 0;
   }
 
+  // Détection frustration/désengagement
+  const frustrationPhrases = ['tu écoutes','t\'écoutes','tu répètes','tu répète','tu n\'as pas répondu','tu as pas répondu',
+    'ça n\'a aucun sens','aucun sens','tu bugues','tu bug','ça ne sert à rien','comprends pas pourquoi tu',
+    'tu m\'intéresses pas','m\'intéresse pas','tu ne m\'écoutes','intéresse pas de parler','je te parle'];
+  const isFrustrated = frustrationPhrases.some(p => textLow.includes(p));
+
   // Après 2 skips consécutifs : injecter une instruction cachée pour forcer l'avance narrative
   let userContent = text;
-  if (consecutiveSkips >= 2) {
+  if (isFrustrated) {
+    userContent = text + '\n[SYSTÈME RÈGLE 6 : FRUSTRATION DÉTECTÉE. OBLIGATOIRE : Ne mentionne AUCUN fait scientifique. Réponds UNIQUEMENT à l\'émotion exprimée avec empathie, 2 phrases max, puis pose UNE question sur ce qu\'il veut faire.]';
+  } else if (consecutiveSkips >= 2) {
     userContent = text + '\n[SYSTÈME ANTI-BOUCLE : L\'enfant ne sait pas. OBLIGATOIRE : donne la réponse toi-même en 1 phrase narrative vivante, puis passe IMMÉDIATEMENT au fait scientifique SUIVANT dans ta liste. N\'utilise PAS les faits déjà mentionnés dans cette conversation.]';
     consecutiveSkips = 0; // reset après injection
   }
