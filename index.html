@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COSMOS — Mission Spatiale Interactive</title>
+  <style>
+    :root {
+      --accent: #4fc3f7;
+      --glow:   #4fc3f7;
+      --bg:     #020818;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: #e0f0ff;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ——— ETOILES ——— */
+    #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; border-radius: 50%; background: white;
+      animation: twinkle var(--d,3s) var(--delay,0s) infinite alternate ease-in-out;
+    }
+    @keyframes twinkle {
+      from { opacity:.1; transform:scale(1); }
+      to   { opacity:.9; transform:scale(1.4); }
+    }
+    #ambient { position:fixed; inset:0; pointer-events:none; z-index:1; transition:background 1.5s ease; }
+
+    /* ——— ECRANS GENERAUX ——— */
+    .screen {
+      display: none; position: relative; z-index: 10;
+      width: 100%; max-width: 700px;
+      animation: fadeUp .7s ease;
+    }
+    .screen.active { display: flex; flex-direction: column; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ——— WELCOME ——— */
+    #screen-welcome {
+      align-items: center; text-align: center; padding: 2rem 1rem;
+      height: 100vh; justify-content: center;
+    }
+    .rocket-anim { font-size:4rem; animation: float 3s ease-in-out infinite; margin-bottom:1rem; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+    #screen-welcome h1 {
+      font-size:3.2rem; letter-spacing:.3em; color:var(--accent);
+      text-shadow:0 0 40px var(--glow),0 0 80px var(--glow); margin-bottom:.3rem;
+    }
+    .subtitle { font-size:.9rem; letter-spacing:.2em; color:#7ecfff; opacity:.8; margin-bottom:2.5rem; }
+    .form-group { display:flex; flex-direction:column; align-items:center; gap:1rem; }
+    .form-group label { font-size:1rem; color:#a0d8ef; }
+    .cosmos-input {
+      background:rgba(79,195,247,.1); border:1px solid rgba(79,195,247,.4);
+      border-radius:12px; color:white; font-size:1.2rem; padding:.7rem 1.5rem;
+      text-align:center; outline:none; width:220px; transition:border-color .3s,box-shadow .3s;
+    }
+    .cosmos-input:focus { border-color:var(--accent); box-shadow:0 0 20px rgba(79,195,247,.3); }
+    .cosmos-input::placeholder { color:rgba(255,255,255,.25); }
+    .btn-primary {
+      background:linear-gradient(135deg,#1565c0,#0288d1); border:none;
+      border-radius:50px; color:white; cursor:pointer; font-size:.95rem;
+      font-weight:600; letter-spacing:.1em; padding:.8rem 2.2rem;
+      box-shadow:0 0 25px rgba(79,195,247,.4); transition:transform .2s,box-shadow .2s;
+    }
+    .btn-primary:hover { transform:scale(1.05); box-shadow:0 0 40px rgba(79,195,247,.6); }
+    .btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+    /* ——— RETURNING ——— */
+    #screen-returning {
+      align-items: center; text-align: center; padding: 2rem 1rem;
+      height: 100vh; justify-content: center; gap: 1.5rem;
+    }
+    #screen-returning h2 { font-size:1.8rem; color:var(--accent); }
+    #screen-returning .cliff {
+      font-size:1rem; color:#b0d8ff; font-style:italic;
+      max-width:480px; line-height:1.7;
+      background:rgba(79,195,247,.07); border-left:3px solid var(--accent);
+      padding:1rem 1.2rem; border-radius:0 12px 12px 0; text-align:left;
+    }
+    .ret-btns { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; }
+    .btn-ghost {
+      background:rgba(79,195,247,.1); border:1px solid rgba(79,195,247,.35);
+      border-radius:50px; color:#a0d8ef; cursor:pointer; font-size:.9rem;
+      padding:.65rem 1.6rem; transition:all .2s;
+    }
+    .btn-ghost:hover { background:rgba(79,195,247,.2); color:white; }
+
+    /* ——— DESTINATION SELECT ——— */
+    #screen-destination {
+      height: 100vh; padding: 1.5rem 1rem; overflow-y: auto; gap: 1.2rem;
+      scrollbar-width: thin; scrollbar-color: rgba(79,195,247,.3) transparent;
+    }
+    #screen-destination h2 { color:var(--accent); font-size:1.4rem; letter-spacing:.1em; text-align:center; }
+    .dest-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.8rem; }
+    .dest-card {
+      background:rgba(255,255,255,.04); border:1px solid rgba(79,195,247,.2);
+      border-radius:16px; padding:1.1rem; cursor:pointer; transition:all .25s;
+      position:relative; overflow:hidden;
+    }
+    .dest-card:hover:not(.locked) { background:rgba(79,195,247,.1); border-color:rgba(79,195,247,.5); transform:translateY(-2px); }
+    .dest-card.locked { opacity:.4; cursor:not-allowed; filter:grayscale(.6); }
+    .dest-card.current { border-color:var(--accent); box-shadow:0 0 20px rgba(79,195,247,.2); }
+    .dest-card .dest-emoji { font-size:1.8rem; margin-bottom:.4rem; }
+    .dest-card .dest-name { font-size:.95rem; font-weight:700; color:#e0f0ff; }
+    .dest-card .dest-progress {
+      font-size:.72rem; color:#7ecfff; margin-top:.3rem;
+      display:flex; align-items:center; gap:.5rem;
+    }
+    .progress-bar {
+      flex:1; height:4px; background:rgba(255,255,255,.1); border-radius:4px; overflow:hidden;
+    }
+    .progress-fill { height:100%; background:var(--accent); border-radius:4px; transition:width .5s ease; }
+    .dest-card .lock-icon { position:absolute; top:.7rem; right:.7rem; font-size:.9rem; }
+    .dest-card .unlock-hint { font-size:.65rem; color:rgba(255,255,255,.35); margin-top:.3rem; }
+    .badge-row { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.4rem; }
+    .badge {
+      font-size:.65rem; padding:.15rem .5rem; background:rgba(255,193,7,.15);
+      border:1px solid rgba(255,193,7,.3); border-radius:20px; color:#ffd54f;
+    }
+
+    /* ——— CHAT ——— */
+    #screen-chat { height:100vh; padding:0 .5rem; }
+    #mission-bar {
+      display:flex; align-items:center; gap:.7rem;
+      padding:.65rem .8rem; background:rgba(0,0,0,.55);
+      border-bottom:1px solid rgba(79,195,247,.15); flex-shrink:0;
+    }
+    #mission-bar .logo { font-size:1.2rem; font-weight:800; color:var(--accent); letter-spacing:.15em; text-shadow:0 0 15px var(--glow); }
+    #mission-bar .sep { flex:1; }
+    #led-indicator {
+      width:12px; height:12px; border-radius:50%;
+      background:var(--glow); box-shadow:0 0 8px var(--glow),0 0 16px var(--glow);
+      transition:background .8s,box-shadow .8s; flex-shrink:0;
+    }
+    #mission-text { font-size:.7rem; letter-spacing:.12em; color:#a0d8ef; font-weight:600; }
+    #stage-badge {
+      font-size:.65rem; padding:.15rem .5rem;
+      background:rgba(79,195,247,.15); border:1px solid rgba(79,195,247,.3);
+      border-radius:20px; color:var(--accent); white-space:nowrap;
+    }
+    .top-btn {
+      background:none; border:1px solid rgba(255,255,255,.15); border-radius:8px;
+      color:rgba(255,255,255,.4); cursor:pointer; font-size:.65rem; padding:.25rem .55rem;
+      transition:all .2s;
+    }
+    .top-btn:hover { color:white; border-color:rgba(255,255,255,.5); }
+
+    #messages {
+      flex:1; overflow-y:auto; padding:.8rem .3rem;
+      display:flex; flex-direction:column; gap:.9rem;
+      scrollbar-width:thin; scrollbar-color:rgba(79,195,247,.25) transparent;
+    }
+    #messages::-webkit-scrollbar { width:3px; }
+    #messages::-webkit-scrollbar-thumb { background:rgba(79,195,247,.25); border-radius:3px; }
+
+    .msg {
+      max-width:87%; border-radius:18px; padding:.8rem 1rem;
+      font-size:.93rem; line-height:1.55; animation:msgIn .3s ease;
+    }
+    @keyframes msgIn {
+      from { opacity:0; transform:translateY(8px) scale(.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+    .msg.cosmos {
+      align-self:flex-start;
+      background:rgba(21,101,192,.22); border:1px solid rgba(79,195,247,.22);
+      border-bottom-left-radius:4px;
+    }
+    .msg.cosmos .sender { font-size:.65rem; letter-spacing:.14em; color:var(--accent); font-weight:700; margin-bottom:.3rem; }
+    .msg.user {
+      align-self:flex-end; background:rgba(2,136,209,.28);
+      border:1px solid rgba(79,195,247,.18); border-bottom-right-radius:4px;
+    }
+    .msg.system-msg {
+      align-self:center; background:rgba(255,193,7,.1);
+      border:1px solid rgba(255,193,7,.25); border-radius:12px;
+      font-size:.78rem; color:#ffd54f; text-align:center; max-width:90%; padding:.6rem 1rem;
+    }
+
+    #typing { display:none; align-self:flex-start; padding:.65rem .9rem;
+      background:rgba(21,101,192,.18); border:1px solid rgba(79,195,247,.18);
+      border-radius:18px; border-bottom-left-radius:4px; gap:4px; align-items:center; }
+    #typing.visible { display:flex; }
+    .dot {
+      width:6px; height:6px; border-radius:50%; background:var(--accent);
+      animation:bounce 1.2s infinite ease-in-out;
+    }
+    .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+    @keyframes bounce {
+      0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-6px);opacity:1}
+    }
+
+    #input-area {
+      display:flex; align-items:center; gap:.5rem;
+      padding:.7rem .3rem; border-top:1px solid rgba(79,195,247,.12); flex-shrink:0;
+    }
+    #chat-input {
+      flex:1; background:rgba(79,195,247,.07); border:1px solid rgba(79,195,247,.22);
+      border-radius:50px; color:white; font-size:.92rem; padding:.6rem 1.1rem;
+      outline:none; transition:border-color .3s,box-shadow .3s;
+    }
+    #chat-input:focus { border-color:var(--accent); box-shadow:0 0 12px rgba(79,195,247,.18); }
+    #chat-input::placeholder { color:rgba(255,255,255,.22); }
+    #btn-send {
+      background:linear-gradient(135deg,#1565c0,#0288d1); border:none; border-radius:50%;
+      color:white; cursor:pointer; font-size:1rem; width:42px; height:42px;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 0 12px rgba(79,195,247,.3); transition:transform .2s,box-shadow .2s; flex-shrink:0;
+    }
+    #btn-send:hover { transform:scale(1.1); box-shadow:0 0 22px rgba(79,195,247,.5); }
+    #btn-send:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+    #btn-voice {
+      background:rgba(79,195,247,.08); border:2px solid rgba(79,195,247,.28); border-radius:50%;
+      color:var(--accent); cursor:pointer; font-size:1.1rem; width:42px; height:42px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s; flex-shrink:0;
+    }
+    #btn-voice:hover { background:rgba(79,195,247,.18); }
+    #btn-voice.listening { background:rgba(244,67,54,.2); border-color:#f44336; color:#f44336; animation:pulse-mic 1s infinite; }
+    @keyframes pulse-mic {
+      0%,100%{box-shadow:0 0 0 0 rgba(244,67,54,.4)} 50%{box-shadow:0 0 0 10px rgba(244,67,54,0)}
+    }
+
+    /* ——— STAGE COMPLETE BANNER ——— */
+    #stage-banner {
+      display:none; position:fixed; top:0; left:0; right:0; z-index:100;
+      background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(79,195,247,.15));
+      border-bottom:1px solid rgba(0,255,136,.4); padding:.8rem 1rem;
+      text-align:center; font-size:.85rem; color:#00ff88; font-weight:600;
+      letter-spacing:.05em; animation:slideDown .5s ease;
+    }
+    @keyframes slideDown { from{transform:translateY(-100%)} to{transform:translateY(0)} }
+
+    /* ——— TOAST ——— */
+    #toast {
+      display:none; position:fixed; bottom:5rem; left:50%; transform:translateX(-50%);
+      background:rgba(244,67,54,.9); color:white; padding:.55rem 1.1rem;
+      border-radius:20px; font-size:.82rem; z-index:200; animation:fadeUp .3s ease;
+    }
+
+    @media(max-width:500px) {
+      .dest-grid { grid-template-columns:1fr; }
+      #screen-welcome h1 { font-size:2.4rem; }
+      .msg { font-size:.87rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+<div id="ambient"></div>
+
+<!-- ========= ECRAN ACCUEIL (premiere fois) ========= -->
+<div id="screen-welcome" class="screen">
+  <span class="rocket-anim">🚀</span>
+  <h1>COSMOS</h1>
+  <p class="subtitle">MISSION SPATIALE INTERACTIVE</p>
+  <form class="form-group" onsubmit="onWelcomeSubmit(event)">
+    <label for="input-prenom">Ton nom, commandant ?</label>
+    <input id="input-prenom" class="cosmos-input" type="text" placeholder="Arthur, Theo..." autocomplete="off" required maxlength="20">
+    <button class="btn-primary" type="submit">🛸 Lancer la mission</button>
+  </form>
+</div>
+
+<!-- ========= ECRAN RETOUR (sessions suivantes) ========= -->
+<div id="screen-returning" class="screen">
+  <div style="font-size:3rem">👨‍🚀</div>
+  <h2 id="ret-title">Bon retour !</h2>
+  <div id="ret-cliff" class="cliff"></div>
+  <div class="ret-btns">
+    <button class="btn-primary" onclick="continueLastMission()">▶ Continuer la mission</button>
+    <button class="btn-ghost" onclick="showDestinations()">🗺 Changer de destination</button>
+    <button class="btn-ghost" onclick="resetAll()">↺ Nouveau commandant</button>
+  </div>
+</div>
+
+<!-- ========= DESTINATIONS ========= -->
+<div id="screen-destination" class="screen">
+  <h2>🗺 Choisir une destination</h2>
+  <div class="dest-grid" id="dest-grid"></div>
+  <div style="height:1rem"></div>
+</div>
+
+<!-- ========= CHAT ========= -->
+<div id="screen-chat" class="screen">
+  <div id="mission-bar">
+    <span class="logo">COSMOS</span>
+    <span class="sep"></span>
+    <div id="led-indicator"></div>
+    <span id="mission-text">EN ATTENTE</span>
+    <span id="stage-badge"></span>
+    <button class="top-btn" onclick="showDestinations()" title="Changer de destination">🗺</button>
+    <button class="top-btn" onclick="restartCurrentMission()" title="Relancer la mission">↺</button>
+    <button class="top-btn" id="btn-mute" onclick="toggleMute()" title="Son on/off">🔊</button>
+    <button class="top-btn" id="btn-serial" onclick="toggleSerial()" title="Connecter le module lumineux (USB)">🔌</button>
+  </div>
+
+  <div id="messages">
+    <div id="typing">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <button id="btn-voice" onclick="toggleVoice()" title="Parler">🎙</button>
+    <input id="chat-input" type="text" placeholder="Tape ta reponse, commandant..."
+      autocomplete="off" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}">
+    <button id="btn-send" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<!-- Stage complete banner -->
+<div id="stage-banner"></div>
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+'use strict';
+
+// ====================================================
+// FIREBASE
+// ====================================================
+firebase.initializeApp({
+  apiKey:           'AIzaSyB-i-vDsRjGyoL76z-Q7-ApHBXy9e0LO44',
+  authDomain:       'cosmos-c6896.firebaseapp.com',
+  projectId:        'cosmos-c6896',
+  storageBucket:    'cosmos-c6896.firebasestorage.app',
+  messagingSenderId:'765932299609',
+  appId:            '1:765932299609:web:8b00e011e51be1eb0c1848'
+});
+const db = firebase.firestore();
+
+// ====================================================
+// DESTINATIONS + ETAPES PEDAGOGIQUES
+// ====================================================
+const DEST = {
+  lune: {
+    id:'lune', name:'Lune', emoji:'🌕', led:'#b0d8ff',
+    ambient:'radial-gradient(ellipse at center,rgba(176,216,255,.09) 0%,transparent 70%)',
+    unlocked_by: [],
+    stages: [
+      { name:'Artemis IV — 3 jours dans l\'Orion', obj:'Comprendre le voyage Terre-Lune et pourquoi Artemis IV est la mission historique',
+        hint:'ORDRE : 1. Interieur Orion — 4 personnes dans 4m2 depuis 48h. 2. Artemis IV = premier atterrissage depuis 1972. 3. Houston repond en 1,3 seconde. 4. Starship HLS apercu en orbite, 50m, sans personne. 5. SLS = 98m de fusee pour cette capsule. 6. Gravite lunaire 1/6 (30kg->5kg). BONUS si demande : toilettes dans l\'Orion = WC a aspiration comme mini-aspirateur, urine recyclee en eau potable.',
+        amorce:'Heure 48. Tu colles ton nez au hublot de l\'Orion. La Lune prend tout l\'espace — enormee, grise, couverte de trous. A cote de toi, trois astronautes dorment ou mangent dans 4 m2. Ton coequipier te donne un truc lyophilise en sachet et dit : "T\'as vu ?" Il pointe quelque chose de brillant en orbite. Tu regardes — c\'est quoi ?' },
+      { name:'Atterrissage a Shackleton', obj:'Comprendre comment Starship HLS atterrit et pourquoi le pole sud de la Lune',
+        hint:'ORDRE : 1. Touchdown — regolithe en fontaine silencieuse (pas d\'air=pas d\'onde de souffle). 2. Pression du suit 0,3 atm O2 pur avant sortie. 3. Premier pas — 2cm d\'enfoncement, comme sable mouille. 4. Ciel noir meme si soleil visible — pas d\'atmosphere=pas de diffusion. 5. Shackleton 21km, fond -240 degC jamais de soleil, bord eclaire 89%.',
+        amorce:'Le moteur rugit. Par le hublot, la Lune grossit a toute vitesse. Les jambes d\'atterrissage se deploient avec un CLAC metallique. Contact ! Un nuage de poussiere grise jaillit en silence autour du Starship. Plus aucun bruit. L\'alarme verte clignote : sas pret. Ton equipiere pose la main sur la poignee et te regarde. T\'es pret a sortir ?' },
+      { name:'Le regolithe — l\'ennemi invisible', obj:'Comprendre pourquoi la poussiere lunaire est le plus grand danger de la base',
+        hint:'ORDRE : 1. Visiere grise — regolithe=verre microscopique 10-100 microns (20x plus fin que farine). 2. Electrostatique — se charge comme ballon sur pull, colle a tout. 3. Joint qui grince — 1 grain bloque la flexion, combinaisons Apollo raidies en 3 EVAs. 4. Schmitt Apollo 17 poumons irrites apres 3h. 5. AxEMU nouveau suit 14 couches, visiere electrostatique. 6. 1 litre d\'eau/jour impossible de se laver. REGLE D\'OR : chaque probleme (visiere, joint, genou) = UNE SEULE mention puis COSMOS passe au fait suivant. JAMAIS de repetition, JAMAIS d\'angoisse prolongee.',
+        amorce:'Cinq minutes dehors. Ta visiere est deja grise — la poussiere ne tombe pas, elle colle. Ton equipiere se retourne vers toi et pointe le sol : les traces de vos pas sont parfaites, gravees pour toujours. Mais sous vos bottes, cette meme poussiere est en train de faire quelque chose. Qu\'est-ce que tu remarques sur ta combinaison ?' },
+      { name:'Fabriquer l\'air et l\'eau', obj:'Comprendre l\'ISRU : tirer l\'oxygene du sol et l\'eau de la glace de Shackleton',
+        hint:'ORDRE : 1. Electrolyseur — chauffe regolithe a 900 degres, sol=40-45% O2 emprisonne, 1kg->630g O2. 2. Residus=metaux reutilisables. 3. Forage Shackleton — 3 milliards de tonnes de glace (LCROSS 2009). 4. Glace->H2O->H2 (carburant)+O2 (air). 5. Recyclage ECLSS 98% — sueur+haleine+urine->eau potable. Fil : decouverte choquante mais fascinante.',
+        amorce:'La base sent le metal chaud. Une machine dans le coin vibre en permanence — elle ingere du sol lunaire et crache de l\'oxygene pur. Un tuyau relie le module cuisine a un autre engin qui... tu lis l\'etiquette... "eau recyclage urine". Tu regardes ton gobelet. Ton equipiere sourit. "Bois, t\'inquiete pas." Tu bois ?' },
+      { name:'Vivre sur la Lune', obj:'Comprendre la vie quotidienne : manger, dormir, aller aux toilettes en 1/6 de gravite',
+        hint:'ORDRE : 1. WC UWMS = aspiration comme aspirateur, ceinture pour ne pas flotter. 2. Pas de douche — shampoing sec, lingettes. 3. Nourriture lyophilisee, eau chaude ajoutee. 4. Sport 2h/jour obligatoire meme en 1/6 gravite — muscles s\'atrophient. 5. Soleil fixe au pole sud, pas de jour/nuit. 6. Appel video Houston 1,3s delai. Ton : drole, bizarre, pas clinique.',
+        amorce:'Premier matin. Tu te reveilles dans ton sac de couchage fixe au mur. Tu dois aller aux toilettes. L\'astronaute d\'a cote te tend un manuel de 3 pages intitule "Comment utiliser les WC lunaires". Tu l\'ouvres. T\'es pret pour ca ?' },
+      { name:'La nuit de 336 heures', obj:'Comprendre la nuit lunaire et pourquoi le nucleaire est la seule vraie solution energetique',
+        hint:'ORDRE : 1. Soleil disparait — panneaux tombent a zero en quelques minutes. 2. Nuit=336h (-173 degC). 3. Crete Shackleton eclairee 89% — meilleur spot du systeme solaire. 4. Reacteur fission 40kW (NASA+DOE) prend le relais — RTG comme Curiosity. 5. Si reacteur s\'arrete : 4h avant -50 degC dans la base. Ton : tension crescendo, la nuit est une vraie menace.',
+        amorce:'Le soleil touche l\'horizon. Ton equipiere dit : "Ca va tomber vite." En 8 minutes les panneaux solaires affichent zero. Le reacteur nucleaire prend le relais avec un bourdonnement sourd. Sur l\'ecran : "FISSION SURFACE POWER — NOMINAL". Tu regardes dehors. Le noir est total. Quelque chose dans ton casque bippe doucement. Qu\'est-ce que tu verifies en premier ?' },
+      { name:'La Lune — tremplin vers Mars', obj:'Comprendre pourquoi la Lune prepare la mission Mars et ce qui change avec la distance',
+        hint:'ORDRE : 1. Lune s\'eloigne — 384 400km en 3 jours, delai 1,3s. 2. Tout ce qu\'on a appris sert pour Mars. 3. Mars : 54,6M km (100x), 7-9 mois. 4. Delai 3-24 minutes — si ca casse Houston repond une demi-heure apres. 5. Base 2036, Mars 2040. 6. Fenetre lancement tous les 26 mois — rate = 2 ans d\'attente. Ton : emotif, on quitte quelque chose de grand pour quelque chose d\'encore plus grand.',
+        amorce:'Le Starship décolle. Tu regardes par le hublot — la Lune retrec. Tu as fabrique de l\'air, survécu au regolithe, tenu une nuit de 336 heures. Ton equipiere dit : "La prochaine fois c\'est Mars." Tu calcules dans ta tete : 100 fois plus loin. Si quelque chose se casse la-bas et qu\'on appelle Houston... la reponse arrive combien de temps apres ?' }
+    ]
+  },
+  mars: {
+    id:'mars', name:'Mars', emoji:'🔴', led:'#ff6040',
+    ambient:'radial-gradient(ellipse at center,rgba(255,96,64,.09) 0%,transparent 70%)',
+    unlocked_by: ['lune'],
+    stages: [
+      { name:'Entree atmospherique', obj:'Atmosphere martienne et 7 minutes de terreur',
+        hint:'95% CO2, pression 0.6% Terre, 7 min autonome, bouclier PICA, signal 3-22min delai',
+        amorce:'Tu entres dans l\'atmosphere de Mars. Le bouclier monte a 1600 degC. Houston ne peut pas t\'aider, le signal met 11 minutes. Qu\'est-ce que tu verifies en premier ?' },
+      { name:'Produire de l\'oxygene', obj:'MOXIE : electrolyse du CO2 martien',
+        hint:'2CO2 -> 2CO + O2, temperature 800 degC, Perseverance a produit 122g, mission habitee : 25 tonnes',
+        amorce:'Ton reservoir d\'oxygene descend. Tu dois allumer le reacteur MOXIE mais il a besoin de 10 minutes pour chauffer. Combien de temps as-tu avant l\'alerte critique ?' },
+      { name:'Tempete de poussiere', obj:'Meteorologie martienne et gestion des risques',
+        hint:'tempete globale 3 mois, particules 1-3 microns, vent 100km/h mais force faible, Opportunity perdu 2018, nucleaire ou nettoyage',
+        amorce:'Le ciel vient de devenir orange. Ton detecteur dit : tempete niveau 5, 2 heures pour te preparer. Qu\'est-ce que tu rentres dans la base ?' },
+      { name:'Trouver l\'eau', obj:'Eau sur Mars : poles, souterrain, perchlorates',
+        hint:'ocean il y a 3.5 milliards d\'ans, lac souterrain pole sud 20km (MARSIS 2018), 1.5km profondeur, perchlorates anticongelant mais toxiques',
+        amorce:'Ton georadar detecte une anomalie a 1.2km sous toi. Le signal ressemble a de l\'eau liquide. Comment tu vas verifier avant de forer ?' },
+      { name:'Serre martienne', obj:'Ecosysteme ferme et chimie du sol martien',
+        hint:'gravite 0.38g, 1 hectare pression differentielle = 10t par m2, cyanobacteries fixent N2, basalte volcanique utile apres traitement',
+        amorce:'Tu as imprime ta premiere serre en basalte martien. Elle fait 20 m2. Dans quoi tu plantes en premier pour preparer le sol aux legumes ?' },
+      { name:'Lunes de Mars', obj:'Phobos et Deimos : orbites et origine',
+        hint:'Phobos 6000km altitude, orbite 7h39 plus rapide que rotation Mars -> se leve a l\'ouest, s\'ecrase dans 50 millions d\'ans, probablement asteroide capture',
+        amorce:'Ce soir Phobos traverse le ciel en 4 heures. Tu l\'observes et tu remarques qu\'il se deplace dans le mauvais sens. Pourquoi ?' },
+      { name:'Retour vers la Terre', obj:'Orbite de retour, contamination, quarantaine',
+        hint:'delta-v 5.6km/s, fenetre 26 mois apres arrivee, protocole COSPAR categorie V, quarantaine 21 jours, mission totale 30 mois',
+        amorce:'Ton vaisseau retour est pret. Mais le protocole dit de laisser dehors tous les outils qui ont touche le sol. Lequel tu gardes quand meme et pourquoi ?' }
+    ]
+  },
+  iss: {
+    id:'iss', name:'ISS', emoji:'🛰️', led:'#00bfff',
+    ambient:'radial-gradient(ellipse at center,rgba(0,191,255,.08) 0%,transparent 70%)',
+    unlocked_by: [],
+    stages: [
+      // BLOC 1 — ARRIVÉE
+      { name:'Réveil Jour 1', obj:'16 levers de soleil, sac de couchage flottant, premiers repères',
+        amorce:'Tu ouvres les yeux. Ton sac de couchage flotte légèrement contre la cloison. Par le hublot, le soleil se lève — le 4ème depuis hier. COSMOS clignote doucement : "Bonjour commandant. Jour 1 officiel. Café réhydraté ou directement au hublot ? Yuri dit que le café flotte partout si on ouvre mal le sachet."',
+        scenes:[
+          'Par le hublot, un autre lever de soleil commence — le 4ème depuis hier soir. La station tourne à 7,66 km/s : un lever toutes les 45 minutes. En 24h, tu en verras 16. Sur Terre, ta famille n\'en verra qu\'un seul.',
+          'Tu repousses ton sac de couchage contre la cloison — il y est fixé par velcro. Tes pieds ne cherchent plus le sol. Ici, haut et bas n\'existent pas. Hier soir, tu as dormi la tête dans tous les sens sans même le remarquer.',
+          'Tu poses ton café une seconde — le sachet part à la dérive. Yuri le rattrape sans lever les yeux. "Règle numéro un." Il a un rouleau de scotch argenté dans chaque poche depuis son premier séjour. Tout flotte ici : les miettes, les stylos, les cheveux.'
+        ]},
+      { name:'Le corps se transforme', obj:'Syndrome d\'adaptation spatiale — visage, nausées, cerveau',
+        amorce:'COSMOS dit doucement : "Commandant... tu as regardé dans le miroir ce matin ?" Il hésite. "Normal. Les fluides montent vers ta tête sans gravité. Tu as l\'air d\'avoir un rhume." Yuri passe dans le couloir, jette un œil : "Deux jours. Ça passe." Il repart sans s\'arrêter.',
+        scenes:[
+          'Tu te regardes dans le petit miroir fixé à la cloison. Ton visage est légèrement gonflé — pas beaucoup, mais assez pour être différent. Sans gravité, les fluides remontent vers la tête. Tes jambes, elles, ont perdu près d\'un litre de volume depuis hier.',
+          'Tu poses le sachet de café. L\'estomac se retourne. Tes oreilles envoient un signal : "tu tombes". Ton cerveau répond : "non". La moitié des astronautes vomissent les deux premiers jours — les oreilles internes s\'affolent sans gravité pour les guider.',
+          'Ce matin, tu t\'es réveillé sans nausée. Le cerveau a compris : ici, les signaux de l\'oreille interne ne signifient plus rien. Il a mis deux jours. Yuri dit que tout le monde repasse par là — et que personne ne l\'admet vraiment.'
+        ]},
+      { name:'Grandir dans l\'espace', obj:'Vertèbres, relativité, le corps s\'allonge',
+        amorce:'COSMOS consulte ses données. "Tiens. Je viens de te mesurer." Pause. "Tu as grandi de 2 centimètres depuis hier." Il attend ta réaction. "La gravité te comprimait les vertèbres depuis ta naissance. Ici, elles se détendent enfin." Il ajoute, presque pour lui-même : "Et en théorie, tu vieillis un tout petit peu moins vite. Einstein avait prévu ça."',
+        scenes:[
+          'COSMOS t\'a fait tenir droit contre la cloison et a pris ta taille. Deux centimètres de plus qu\'hier. Sans gravité pour comprimer tes vertèbres, elles s\'écartent. Les astronautes grandissent de 5 à 8 cm en mission. À l\'atterrissage, ça revient.',
+          'Tu te penches pour attraper un sachet et tu sens ton dos protester. Les vertèbres ne sont plus habituées à cet espace entre elles. À Houston, un médecin voit les mêmes données que COSMOS sur son écran. Il note quelque chose.',
+          'COSMOS vérifie l\'heure atomique. À 7,66 km/s, le temps passe un tout petit peu plus lentement pour toi que pour ta famille sur Terre. Après 6 mois, tu auras vécu quelques millièmes de secondes de moins qu\'eux. Einstein l\'avait prédit. On l\'a mesuré.'
+        ]},
+      // BLOC 2 — VIE QUOTIDIENNE
+      { name:'Sport obligatoire', obj:'Prévenir la perte osseuse et musculaire',
+        amorce:'Kenji installe son harnais sur le tapis de course avec l\'air de quelqu\'un qui déteste ça. COSMOS : "2h30 par jour. Obligatoire." Kenji grogne : "Je sais." Il démarre. COSMOS te regarde : "Sans ça, dans 3 mois ses jambes ressemblent à des spaghettis." Kenji, sans se retourner : "J\'entends tout."',
+        scenes:[
+          'Tu regardes Kenji courir attaché à son harnais sur le tapis. Ses jambes ne touchent pas le sol — elles flottent légèrement à chaque foulée. 2h30 par jour. Sans ça, les os perdent 1 à 2% de masse par mois. À la fin d\'une mission, certains astronautes ne pouvaient plus marcher seuls.',
+          { fact: 'Kenji grimace en ajustant les sangles. Sans gravité, ses jambes ne servent plus à rien — elles s\'atrophient vite. Le cœur aussi rétrécit : plus besoin de pomper contre la pesanteur. Il déteste le sport orbital. Il ne peut pas s\'en passer.', pauseAfter: true },
+          'Tu t\'approches des appareils. Le vélo n\'a pas de selle — on pédale dans le vide. Le tapis a des élastiques dans le dos. La musculation fonctionne par pression d\'air. Pas d\'haltères : à 0G, ils flotteraient et personne ne s\'en sortirait.',
+          'Kenji finit sa session et vérifie ses données. Ce que la NASA apprend ici sur l\'ostéoporose sert directement sur Terre. Des traitements pour les personnes âgées ont été améliorés grâce à des expériences comme celle-là. Kenji soupire. "Au moins ça sert à quelque chose."'
+        ]},
+      { name:'Nourriture dans l\'espace', obj:'Manger en apesanteur — sachets, goût, inventivité',
+        amorce:'C\'est l\'heure du repas. Kenji sort avec soin un sachet argenté, ajoute de l\'eau chaude, attend exactement 3 minutes. COSMOS : "Ramen. Son 6ème ce mois-ci." Kenji : "Ça goûte différemment qu\'à Tokyo. Mais je n\'arrive pas à décider si c\'est meilleur ou moins bien." Il réfléchit en mangeant. "Peut-être les deux."',
+        scenes:[
+          'Tu sors ton sachet-repas et tu le colles au velcro devant toi. Pas d\'assiette — elle s\'envolerait. L\'eau chaude réhydrate le contenu en 3 minutes. Tu manges directement dans le sachet. Kenji surveille son chronomètre de l\'autre côté de la table.',
+          'Tu cherches le sel. COSMOS te tend un petit flacon liquide. Pas de grains ici — ils partiraient dans les instruments et pourraient tout court-circuiter. Le sel et le poivre existent en version liquide à bord. Comme le miel, la moutarde, le ketchup.',
+          'Tu goûtes. C\'est plus épicé que prévu. Les fluides dans ta tête modifient ta perception du goût. Des astronautes ont découvert ici qu\'ils adoraient des épices qu\'ils ne supportaient pas sur Terre. Ton palais n\'est plus tout à fait le même.',
+          'Kenji ouvre un placard personnel et sort un sachet doré avec des kanji dessus. Il l\'inspecte, le referme, le rerange soigneusement. "Pas aujourd\'hui." Apportés du Japon, lyophilisés, comptés. Son unique luxe à bord — un tous les 4 ou 5 jours.'
+        ]},
+      { name:'Hygiène et toilettes', obj:'L\'ingéniosité face à l\'apesanteur — eau recyclée, zéro gaspillage',
+        amorce:'COSMOS a l\'air légèrement gêné. "Commandant... je dois te montrer quelque chose d\'important avant demain matin." Il t\'emmène vers un module. "Les toilettes. Il y a un manuel de 3 pages." Yuri passe : "Lis le manuel. Deux fois." Il disparaît. COSMOS : "Il a une histoire là-dessus. Il ne la raconte jamais."',
+        scenes:[
+          'Tu lis la page 1 du manuel. Les toilettes fonctionnent par aspiration — un ventilateur aspire dans deux tuyaux séparés, urine d\'un côté, excréments de l\'autre. Pas de chasse d\'eau. Tu relis. Tu comprends pourquoi Yuri a dit "deux fois".',
+          'Le matin, tu prends une lingette. Puis une autre. Pas de douche à bord — si tu faisais couler de l\'eau ici, elle formerait des bulles qui flotteraient dans tout le module. Tu te laves les cheveux avec un shampooing sans rinçage. Lena t\'a montré comment.',
+          'COSMOS pointe le système de filtration dans le couloir. 98% de toute l\'eau à bord est recyclée — urine et transpiration purifiées, eau de condensation récupérée. Le résultat est plus propre que l\'eau du robinet sur Terre. "L\'eau que tu bois ce matin," dit COSMOS, "c\'était peut-être ta sueur d\'hier."'
+        ]},
+      // BLOC 3 — LA STATION
+      { name:'La station de près', obj:'Architecture de l\'ISS — taille, construction, histoire',
+        amorce:'COSMOS propose : "On fait le grand tour ?" Il te guide de module en module. "Ici le Node 2. Là Columbus — le labo européen. Le module japonais Kibo — le plus grand à bord. Et là Zvezda, le module russe — arrivé en 2000, le plus vieux." Il s\'arrête. "42 vols pour amener tout ça ici. 13 ans de construction."',
+        scenes:[
+          'Tu sors dans le couloir principal et tu regardes des deux côtés. COSMOS dit : "109 mètres d\'une extrémité à l\'autre — ailes solaires comprises. Plus long que deux terrains de football." Tu essaies de voir le bout. Tu ne le vois pas.',
+          { fact: 'COSMOS te montre le volume total habitable : 388 m³. Comme l\'intérieur d\'un Boeing 747 — pour 6 personnes, pendant 6 mois. Tu regardes le couloir étroit. Yuri passe en te frôlant. "On s\'y fait," dit-il.', pauseAfter: true },
+          'COSMOS te montre une vieille photo : le premier module Zarya, lancé seul en novembre 1998. Il a fallu 42 vols spatiaux — 13 ans de travaux — pour assembler tout ça en orbite. Pièce par pièce, à 400 kilomètres d\'altitude.',
+          'COSMOS écarte légèrement un panneau de cloison. Derrière : des câbles. Partout. "13 kilomètres de fils électriques dans les murs." Il remet le panneau. "Zvezda grince. Columbus vibre différemment. Chaque module a son propre caractère."'
+        ]},
+      { name:'Les 350 000 capteurs', obj:'Ingénierie, surveillance, Yuri et son carnet',
+        amorce:'Yuri sort un carnet à spirale froissé. Il prend sa lampe frontale et va vers la cloison du fond du couloir de Zvezda. Il y a des bouts de scotch argenté avec des dates au stylo. Il pose son mètre contre le mur, note quelque chose, remet le capuchon. "Bien." Il repart. COSMOS te regarde : "Il fait ça chaque lundi depuis le début de sa mission. Tu veux savoir combien de capteurs surveille ce couloir ?"',
+        scenes:[
+          'COSMOS te montre un schéma sur son écran. 350 000 capteurs répartis dans toute la station — température, pression, CO2 dans chaque module. Plus de 50 ordinateurs tournent en permanence. "Si quelque chose change," dit COSMOS, "on le sait avant de le sentir."',
+          'Dans les cloisons autour de toi, 13 kilomètres de fils. Chaque module a une signature électronique unique — un ingénieur à Houston voit un graphe légèrement différent pour Zvezda et pour Columbus. Une anomalie se détecte en quelques secondes depuis le sol.',
+          'Yuri ressort son carnet ce lundi matin, comme chaque lundi. Lampe frontale, mètre ruban, il mesure la cloison du fond de Zvezda, note un chiffre, remet le capuchon sur son stylo. Il fait ça depuis le début de sa mission. COSMOS a demandé une fois pourquoi. Yuri a haussé les épaules.'
+        ]},
+      // BLOC 4 — MISSION CONTROL
+      { name:'Houston, on vous entend', obj:'Délai radio, 26 nationalités, voter depuis l\'espace',
+        amorce:'L\'écran s\'allume. Maria depuis Houston sourit avec un imperceptible délai : "Bonjour commandant. 1,3 secondes entre nous — c\'est la distance en temps lumière." Elle continue. "Au fait, élections aujourd\'hui aux États-Unis. Tu veux voter depuis l\'espace ?" Elle attend, avec son sourire habituel.',
+        scenes:[
+          'Maria finit sa phrase. Tu attends. 1,3 seconde de silence — la distance en temps lumière entre l\'ISS et Houston. Elle attend ta réponse. Tu réponds. Elle attend à nouveau. Les conversations avec le sol ont toujours ce décalage. Imperceptible, mais réel.',
+          'Derrière Maria à Houston, tu aperçois une carte couverte de petits drapeaux. 280 personnes représentant 26 nationalités ont séjourné à bord depuis 1998. C\'est le plus grand projet de coopération internationale jamais réalisé par l\'humanité.',
+          'Maria te tend un formulaire numérique. "Élections dans 3 jours. Tu veux voter ?" Les astronautes américains peuvent voter depuis l\'ISS — la loi texane l\'autorise spécifiquement. Le premier vote spatial date de 1997, depuis la station Mir.',
+          'Maria dit au revoir avec son sourire habituel. Elle connaît le prénom de tout le monde à bord et glisse parfois des surprises dans les cargos — du chocolat, une lettre, une figurine. Personne ne sait ce qu\'il y a dedans avant d\'ouvrir.'
+        ]},
+      // BLOC 5 — ÉNERGIE & INGÉNIERIE
+      { name:'Panneaux solaires', obj:'90 kilowatts, ISS visible depuis le sol, Spot the Station',
+        amorce:'COSMOS : "Regarde les panneaux solaires sur la caméra externe. 2 500 m2. Ils bougent pour suivre le soleil." Il consulte sa trajectoire. "Dans 22 minutes on survole Paris. Quelqu\'un là-bas lèvera peut-être les yeux et te verra passer — une étoile rapide, 6 minutes d\'ouest en est."',
+        scenes:[
+          'Sur la caméra externe, tu regardes les 8 ailes de panneaux tourner lentement — elles suivent le soleil en continu, sans s\'arrêter. 2 500 m² de surface, 90 kilowatts produits en permanence. Ces ailes alimentent tout ce qui vit à bord.',
+          'COSMOS pointe la Terre dans la nuit en dessous. "En ce moment, quelqu\'un lève les yeux et te voit passer." L\'ISS est le 3ème objet le plus brillant du ciel, après le Soleil et la Lune. Plus lumineuse que Vénus. Visible à l\'œil nu depuis n\'importe quelle ville.',
+          'COSMOS ouvre l\'app Spot the Station. Dans 22 minutes, vous survolez Paris. Pendant 6 minutes, l\'ISS traversera tout le ciel visible depuis la tour Eiffel. Quelqu\'un dans la rue lèvera peut-être les yeux sans savoir que c\'est toi là-dedans.'
+        ]},
+      { name:'Canadarm2', obj:'Bras robotique 17m — capturer des vaisseaux en plein espace',
+        amorce:'COSMOS pointe la caméra externe. Un bras géant se déplace lentement le long de la coque. "Canadarm2. 17 mètres. 7 articulations." Il zoome sur la pince. "Là il approche du cargo Progress. 0,03 mètres par seconde — ça a l\'air lent." Il attend. "À cette vitesse, une erreur et le cargo rebondit dans l\'espace."',
+        scenes:[
+          'Sur la caméra externe, le bras se déplace le long de la coque — segment par segment, en changeant d\'ancrage comme une chenille. 17 mètres, 7 articulations. Canadarm2. COSMOS te montre comment il "marche" d\'un point d\'ancrage à l\'autre. Aucune autre machine ne fait ça dans l\'espace.',
+          'Un cargo Progress approche. Canadarm2 s\'étire, se positionne. La pince se ferme à 0,03 m/s — moins vite qu\'un escargot. La capture se fait en plein espace, à 400 km d\'altitude, sans filet. Si la pince rate, le cargo part à la dérive.',
+          'COSMOS te montre une photo d\'archive : un astronaute dans une nacelle au bout du bras, déplacé le long de la coque sur 30 mètres. Pour les sorties extravéhiculaires, c\'est Canadarm2 qui transporte. Contrôlé depuis ici — et depuis le sol au Canada en même temps.'
+        ]},
+      // BLOC 6 — SCIENCES
+      { name:'La flamme bleue', obj:'Physique du feu sans convection — impossible sur Terre',
+        amorce:'COSMOS chuchote : "Lena commence quelque chose dans Columbus. Viens voir — tu vas voir quelque chose d\'impossible sur Terre." La porte glisse. Lena allume un petit brûleur. Une flamme apparaît : ronde, bleue, parfaite comme une bille. Elle se retourne : "Alors ? Tu aurais parié sur quelle forme ?"',
+        scenes:[
+          'Lena allume le brûleur. La flamme ne monte pas — elle s\'arrondit. Sur Terre, l\'air chaud monte et le feu pointe vers le haut. Ici, sans gravité, il n\'y a pas de convection. La flamme forme une sphère. Parfaite. Bleue. Immobile. Tu n\'as jamais vu ça.',
+          'Lena note la température : 400°C. Sur Terre, la même flamme brûlerait à 1 500°C. Elle consomme moins d\'oxygène, brûle plus doucement, dure plus longtemps. Lena l\'a allumée pour la première fois dans l\'espace il y a 3 ans. Elle dit que ça ne ressemble à rien d\'autre.',
+          'Lena éteint le brûleur et écrit dans son cahier. Cette recherche sert à concevoir des moteurs plus propres, des matériaux plus résistants au feu. Ce qu\'elle fait là, dans ce petit module, améliore des technologies utilisées par des millions de personnes sur Terre.'
+        ]},
+      { name:'Le froid de l\'univers', obj:'Cold Atom Lab — le lieu le plus froid de l\'univers connu',
+        amorce:'Lena te montre un petit appareil blanc. "Tu sais ce que c\'est ?" Elle attend. "L\'endroit le plus froid de l\'univers connu. Là, dans cette boîte." Elle le tient doucement. "Quelques milliardièmes de degré au-dessus du zéro absolu. Plus froid que les étoiles mortes. Et on est assis juste à côté en pull."',
+        scenes:[
+          'Lena pose la boîte blanche dans tes mains. Elle est légère. Il n\'y a rien qui vibre, rien qui chauffe. À l\'intérieur : quelques milliardièmes de degré au-dessus du zéro absolu. Plus froid que les étoiles mortes. Plus froid que l\'espace vide entre les galaxies. Dans cette boîte.',
+          'À cette température, les atomes s\'immobilisent presque. Presque. Et dans ce presque, on peut observer leurs propriétés quantiques — des comportements impossibles à voir autrement. Lena regarde son écran. Des formes que la physique avait prédites et que personne n\'avait encore filmées.',
+          'Lena replace la boîte doucement. Sur Terre, la gravité écrase ces atomes trop vite — on les perd en fractions de seconde. Ici, sans pesanteur, on les observe pendant des secondes entières. Ce labo s\'appelle Cold Atom Laboratory. Il tient dans un espace grand comme une machine à laver.'
+        ]},
+      { name:'Soigner depuis l\'espace', obj:'Cellules-souches et cristaux de protéines',
+        amorce:'Lena regarde avec intensité un petit tube dans l\'incubateur. COSMOS murmure : "Ces cellules-souches. Elles pourraient soigner des leucémies. Elles grandissent 3 fois plus vite ici qu\'en labo sur Terre." Lena se retourne : "Ça fait 10 ans que je travaille sur ça. Là-haut, ça marche enfin."',
+        scenes:[
+          'Lena sort le tube de l\'incubateur et le tient à la lumière. En apesanteur, les cellules-souches à l\'intérieur se multiplient 3 fois plus vite qu\'en labo sur Terre. Et elles restent utilisables plus longtemps. Elle repose le tube avec précaution.',
+          'Lena montre ses données sur l\'écran. Des leucémies. Des maladies du sang. L\'objectif : cultiver ces cellules ici, les utiliser pour traiter des malades là-bas. Elle travaille sur ça depuis 10 ans. Ici, pour la première fois, ça marche.',
+          'Dans l\'incubateur voisin : des cristaux de protéines. Sans gravité, ils poussent plus gros, plus réguliers, plus parfaits. On s\'en sert pour concevoir des médicaments plus efficaces. "Ce que je fais là," dit Lena en refermant le panneau, "ça pourrait un jour compter pour quelqu\'un que tu connais."'
+        ]},
+      { name:'Le jardin spatial', obj:'Cultiver des légumes dans l\'espace — VEGGIE et la tomate perdue',
+        amorce:'Il y a un coin discret avec des lumières violettes. Lena : "Notre jardin." Tu regardes : de la laitue, des radis, une tomate solitaire sous un filet. "Celle-là on l\'avait perdue en octobre. On vient de la retrouver — 8 mois dans la station, toute seule." Elle la tient doucement. "Je vais l\'analyser. Mais j\'ai l\'impression qu\'elle a survécu."',
+        scenes:[
+          'Lena te montre les compartiments VEGGIE sous les lumières violettes. Laitue, radis, piments, tomates cerises — tout ça a déjà été cultivé et mangé entièrement dans l\'espace. Le premier repas de laitue spatiale date de 2015. Les astronautes disaient qu\'elle goûtait différemment.',
+          { fact: 'Tu regardes les racines à travers la paroi transparente. Elles ne poussent pas vers le bas — il n\'y a pas de bas. Elles suivent la lumière et l\'humidité. Lena dit que cette découverte changera l\'agriculture sur Mars : là-bas non plus, les racines ne pourront pas compter sur la pesanteur.', pauseAfter: true },
+          'Lena ouvre un petit filet dans le coin du module et sort une tomate rouge foncé. "Perdue en octobre 2023. Retrouvée 8 mois plus tard, là, derrière le panneau." Elle la tient entre deux doigts. "Je ne sais pas encore si elle est viable. Mais elle a survécu."',
+          'Kenji arrose ses pousses de l\'autre côté. Il le fait chaque matin depuis le début de sa mission — ça prend 4 minutes. La NASA mesure l\'effet des plantes sur le moral des équipages et l\'intègre dans les plans des futures bases lunaires. Quelque chose de vivant qui pousse.'
+        ]},
+      { name:'Photographier la Terre', obj:'3,5 millions de photos — l\'orbite et la population mondiale',
+        amorce:'COSMOS : "Dans 4 minutes, on survole quelque chose que tu peux photographier." Il consulte la trajectoire. "Tu veux une ville de nuit — les rues ressemblent à des nervures lumineuses. Un cyclone — spirale parfaite vue de dessus. Un désert — les dunes ont des formes impossibles à voir depuis le sol." Il attend ton choix.',
+        scenes:[
+          'Tu appuies sur le déclencheur. La Terre remplit l\'objectif. Depuis l\'ISS, 3,5 millions de photos ont déjà été prises — toutes accessibles au public sur un site de la NASA. Chaque astronaute ajoute les siennes. Tu regardes ta première photo. Elle est floue. Tu recommences.',
+          'COSMOS affiche la trajectoire. En ce moment, sous tes pieds : la Méditerranée, l\'Afrique du Nord, des millions de personnes. L\'orbite survole 90% de la population mondiale. En 90 minutes, tu feras le tour de la Terre entière.',
+          'Nuit sur l\'Asie. Tu photographies Tokyo — des artères lumineuses qui rayonnent en araignée. Puis un cyclone au-dessus du Pacifique : spirale parfaite, visible en entier depuis ici. Des formes que personne ne voit depuis le sol. Que toi, ici, maintenant.'
+        ]},
+      // BLOC 7 — EVA
+      { name:'La combinaison spatiale', obj:'L\'EMU — 150 millions d\'euros, 14 couches, un vaisseau miniature',
+        amorce:'COSMOS ouvre le placard de la combinaison. "Voilà. 130 kilos. 150 millions d\'euros." Il te montre chaque couche. "Ici, protection micrométéorites. Là, isolation thermique — dehors il fait -157°C dans l\'ombre et +121°C au soleil, parfois sur la même sortie." Il attend. "Tu la mets ?"',
+        scenes:[
+          'COSMOS ouvre le placard. La combinaison EMU est là, blanc cassé, immobile. Elle pèse 130 kg sur Terre. 150 millions d\'euros. 14 couches superposées : protection micrométéorites, isolation thermique, oxygène, régulation de pression. Tu poses une main dessus. Elle ne ressemble à rien de ce que tu connais.',
+          { fact: 'COSMOS fait défiler les données. Dehors, là où tu vas aller : -157°C à l\'ombre et +121°C au soleil. Parfois les deux sur la même sortie — en quelques mètres, tu passes d\'une zone d\'ombre à plein soleil. La combinaison gère les deux. En même temps.', pauseAfter: true },
+          'Trois heures avant la sortie, tu commences à respirer de l\'oxygène pur. Le masque est inconfortable. C\'est obligatoire : ça purge l\'azote du sang. Sans ça, en passant à la pression du vide, des bulles se formeraient dans les vaisseaux. Comme un plongeur qui remonte trop vite.',
+          'COSMOS te montre le SAFER — un boîtier intégré dans le dos de la combinaison. Si le câble se rompt et que tu pars à la dérive, le SAFER se déclenche automatiquement. Des petits jets de gaz te ramènent vers la station. C\'est la dernière sécurité. Tu espères ne jamais en avoir besoin.'
+        ]},
+      { name:'EVA — Dans le vide', obj:'259 sorties extravéhiculaires, records, Noël en combinaison',
+        amorce:'Sas ouvert. Juste de l\'autre côté : le vide. COSMOS dit calmement : "259 personnes ont fait ça avant toi. Le record c\'est 8 heures et 56 minutes." Pause. "Le plus mémorable ? Noël 2013 — Mike et Rick ont réparé une pompe en urgence. Deux sorties, quatre jours. Ils ont fêté Noël en combinaison." Il attend. "Tu mets le pied ?"',
+        scenes:[
+          'Tu poses les mains sur les barres de la coque et tu t\'extrais du sas. Le vide. Tout autour. La Terre en dessous — bleue, immense, silencieuse. 259 sorties ont eu lieu depuis 1998. Chacune dure en moyenne 6 à 7 heures. Tu viens d\'en commencer une.',
+          { fact: 'Tu avances le long de la coque, main après main. La Terre tourne lentement en dessous. Susan Helms et James Voss ont tenu 8 heures et 56 minutes dehors en mars 2001 — le record absolu. Presque une journée de travail entière. Dans le vide.', pauseAfter: true },
+          'COSMOS te raconte pendant que tu travailles. Noël 2013. Une pompe de refroidissement tombe en panne. Mike Hopkins et Rick Mastracchio sortent deux fois en quatre jours pour la réparer. Ils ont fêté Noël en combinaison, à l\'extérieur. La réparation a tenu.',
+          'Un petit bruit dans le casque. COSMOS : "Rien. Signal parasite." Tu continues. 27 000 débris de plus de 10 cm orbitent à 14 km/s. Un boulon a l\'énergie cinétique d\'une balle. La station a des boucliers. Ta combinaison, non. Tu travailles plus vite.'
+        ]},
+      // BLOC 8 — VUES & NUIT
+      { name:'La Cupola', obj:'Vue panoramique 360° — aurores boréales vues de dessus',
+        amorce:'COSMOS dit doucement : "Viens. Maintenant." Il te guide dans le module Cupola. Sept fenêtres incurvées — la Terre en dessous, l\'espace tout autour. Les aurores boréales dansent sur la courbure : des rideaux verts et violets. COSMOS ne dit rien pendant un long moment. Puis : "C\'est l\'aurore. Rien à ajouter."',
+        scenes:[
+          'Tu te glisses dans la Cupola. Sept fenêtres incurvées autour de toi. La fenêtre centrale fait 80 cm de diamètre — la plus grande jamais envoyée dans l\'espace. La Terre en dessous. L\'espace tout autour. Tu restes sans bouger.',
+          'Yuri est là. Il ne dit rien. Il regarde juste. Il vient ici pendant son temps libre — certains jours plusieurs heures d\'affilée. C\'est l\'endroit préféré de presque tous les astronautes. Il y a quelque chose ici que les mots ne rendent pas bien.',
+          'Les aurores boréales apparaissent sous toi — des rideaux verts et violets qui ondulent sur la courbure de la Terre. Depuis le sol, on les voit à l\'horizon. Depuis ici, on les voit par-dessus. COSMOS reste silencieux. Il n\'a rien à ajouter.'
+        ]},
+      { name:'Nuit à bord', obj:'La vie émotionnelle — famille, musique, anniversaires dans l\'espace',
+        amorce:'C\'est l\'heure calme. Le soleil vient de "se coucher" pour 45 minutes. Yuri écrit dans son journal. Kenji regarde des photos de sa famille. Lena écoute quelque chose avec des écouteurs. COSMOS baisse sa lumière. "Tu as 20 minutes. Connexion libre. Tu écris à qui ?"',
+        scenes:[
+          'Tu ouvres ton ordinateur. Un email de ta famille — envoyé il y a 3 heures. Ici c\'est le soir, là-bas c\'était l\'après-midi. La NASA limite les missions à 6 mois car au-delà, la psychologie des équipages se dégrade de façon mesurable. Le lien avec la Terre fait partie du protocole.',
+          'Lena ouvre un cargo récemment amarré et trouve au fond un petit paquet avec son nom. Son anniversaire était il y a deux semaines — mais le cargo est parti avant. Elle l\'ouvre lentement. La NASA glisse des surprises dans chaque envoi. Personne ne sait ce qu\'il y a dedans avant.',
+          'Kenji te montre une vidéo sur sa tablette. Un astronaute avec une guitare, dans la station. Space Oddity de David Bowie — 50 millions de vues depuis 2013. Chris Hadfield a chanté en orbite. La NASA a dû créer une exception spéciale aux droits d\'auteur pour ça.'
+        ]},
+      // BLOC 9 — URGENCES & LONG TERME
+      { name:'Débris et protection', obj:'Bouclier Whipple, manœuvres d\'évitement, canots de sauvetage',
+        amorce:'BIIIP. Un voyant orange — pas rouge, orange. COSMOS vérifie rapidement : "Objet non catalogué. Probabilité d\'impact : faible. Mais on suit le protocole." Il consulte ses données. "Les boucliers Whipple sont là pour ça — 14 couches entre toi et le vide." Il attend. "Tu veux savoir ce qui se passe si quelque chose traverse quand même ?"',
+        scenes:[
+          'COSMOS te montre la cloison de près. Deux couches d\'aluminium, une de Nextel — les boucliers Whipple. Des milliers de débris microscopiques orbitent à 28 000 km/h. Quand l\'un d\'eux touche le bouclier, il se vaporise avant d\'atteindre la structure principale. Tu as peut-être déjà entendu des micro-impacts sans le savoir.',
+          'COSMOS ouvre le suivi en temps réel. 27 000 débris de plus de 10 cm sont suivis en permanence depuis le sol. Plusieurs fois par an, la station ajuste son orbite — une petite poussée pour laisser passer un objet catalogué. Le voyant reste orange. Ce n\'est pas nécessaire cette fois.',
+          'COSMOS te montre le chemin. "Si le voyant passe au rouge : tu vas là." La capsule Soyuz amarrée à l\'extrémité de la station. Les canots de sauvetage. En juin 2025, la NASA l\'a ordonné pour de vrai pendant une opération sur Zvezda. L\'équipage s\'est mis à l\'abri. L\'alerte a duré 20 minutes.'
+        ]},
+      { name:'Le corps après 6 mois', obj:'Vision, calculs rénaux, réadaptation au retour',
+        amorce:'Lena fait un bilan de santé. Elle te fait lire un tableau de lettres et note quelque chose. "Tu commences à voir légèrement différemment — les fluides dans ta tête appuient sur tes yeux." Elle range son stylo. "Ça revient à la normale après le retour. Mais ça prend du temps." Elle hésite. "Tu savais que certains astronautes lâchent encore des objets dans l\'air plusieurs mois après être rentrés ?"',
+        scenes:[
+          'Lena te fait tenir droit et te montre un tableau de lettres. Tu lis la première ligne, la deuxième — tu hésites. Elle note quelque chose. Les fluides dans ta tête exercent une pression sur tes yeux depuis l\'intérieur. 2 astronautes sur 3 ont des modifications de vue après une longue mission. C\'est un problème médical actif à la NASA.',
+          'Lena vérifie ta consommation d\'eau. "Deux litres aujourd\'hui ?" Le calcium libéré par tes os qui se dégradent risque de former des calculs rénaux. Houston surveille ça à distance. Tu bois ton sachet d\'eau lentement, les yeux sur le compteur.',
+          'Lena ferme son dossier. "Au retour, tu vas lâcher des objets sans le vouloir." Elle mime le geste — une main qui s\'ouvre dans le vide. "Le cerveau oublie que les objets tombent. Pendant des mois." La réadaptation prend 45 jours minimum. Certains astronautes disent que c\'est plus difficile que l\'adaptation à l\'espace.'
+        ]},
+      // BLOC 10 — HÉRITAGE
+      { name:'Point Nemo', obj:'Rentrée atmosphérique et destin de l\'ISS',
+        amorce:'Le Soyouz se détache doucement. Tu regardes l\'ISS par le hublot — elle rétrécit. COSMOS dit, un peu plus doucement qu\'à son habitude : "1600 degrés et 8 minutes sans radio nous attendent. Mais d\'abord..." Il hésite une seconde. "Tu veux savoir où cette vieille station finira un jour ?"',
+        scenes:[
+          'COSMOS affiche l\'angle : 6,2 degrés. "C\'est dans la fenêtre." Entre 5,5 et 7,5 degrés — pas de marge. Trop raide, le vaisseau brûle. Trop plat, il rebondit dans l\'espace comme un galet sur l\'eau. Tu regardes les chiffres défiler. Il n\'y a pas de deuxième essai.',
+          'Un rougeoiement apparaît autour du hublot. La capsule comprime l\'air à 1 600°C devant elle — pas de frottement, de la compression. Un plasma enveloppe la coque. Les communications coupent. Pendant 8 minutes, Houston ne peut plus te joindre. Tu attends.',
+          'À 10 km d\'altitude, le choc. Les parachutes s\'ouvrent — la capsule ralentit brutalement. À 1 mètre du sol, les rétrofusées s\'allument pour amortir l\'impact. Le sol. Tu sens le poids de ton corps pour la première fois depuis 6 mois.',
+          'COSMOS te montre la trajectoire finale de l\'ISS — prévue pour 2031. Point Nemo. L\'endroit le plus isolé de l\'océan Pacifique, à 2 600 km de toute côte. Mir est déjà là, avec 263 autres engins spatiaux. Ce n\'est pas une fin. C\'est une retraite digne. Après l\'ISS : Gateway autour de la Lune, puis Mars.'
+        ]}
+    ]
+  },
+  europa: {
+    id:'europa', name:'Europa', emoji:'🌊', led:'#00ced1',
+    ambient:'radial-gradient(ellipse at center,rgba(0,206,209,.09) 0%,transparent 70%)',
+    unlocked_by: ['lune', 'mars'],
+    stages: [
+      { name:'Atterrissage sur la glace', obj:'Structure interne d\'Europa',
+        hint:'croute glace 10-30km, ocean 100km profondeur 2x oceans Terre, -160 degC surface, lignes rouges = cryo-eruptions sels, gravite 0.134g',
+        amorce:'Tu poses ton module sur la glace d\'Europa. Le sol craque legerement. Ton geophone detecte des mouvements a 15 km sous toi. Qu\'est-ce qui fait bouger la glace ?' },
+      { name:'Chauffage par marees', obj:'Forces de maree de Jupiter, source d\'energie',
+        hint:'Jupiter deforme Europa de 30m a chaque orbite (3.5 jours), genere 2 W/m2 chaleur friction, maintient ocean liquide, meme mecanisme que Io',
+        amorce:'Tu dois forer a travers 20 km de glace. Ton foret genere de la chaleur. Mais il y a une autre source de chaleur la-dessous qui ne vient pas du foret. D\'ou elle vient ?' },
+      { name:'Percer la glace', obj:'Cryobot et ingenierie du forage profond',
+        hint:'cryobot VALKYRIE laser ou nucleaire, 1m/h, fibre optique deroulee, pression a 100km = 1000 atm, contamination : sterilisation cat I',
+        amorce:'Ton cryobot descend depuis 6 heures, il est a 5 km. Soudain le signal faiblit. Est-ce que la fibre optique est intacte ?' },
+      { name:'Explorer l\'ocean', obj:'Astrobiologie et conditions d\'habitabilite',
+        hint:'criteres : eau + energie + chimie CHNOPS, fumeurs hydrothermaux possibles (comme abysses terrestres), sel chlorure de magnesium + sulfate sodium, pH 4-6',
+        amorce:'Ton sous-marin atteint le fond de l\'ocean d\'Europa. Nuit totale. Ton sonar detecte une structure reguliere a 200 metres. Qu\'est-ce que tu fais avant de t\'approcher ?' },
+      { name:'Rayonnement de Jupiter', obj:'Magnetosphere, radioprotection',
+        hint:'champ magnetique Jupiter = ceinture de particules tres energetiques, EVA impossible sans combinaison blindee, circuits electroniques grillent en quelques heures sans protection, sondes comme Juno ont coffre en titane, fenetre EVA max 40 minutes',
+        amorce:'Ton dosimetre a triple en une heure. Eruption de Jupiter. Tu as 8 minutes pour te proteger. Ou tu vas ?' },
+      { name:'Premier contact potentiel', obj:'Ethique scientifique et protocoles COSPAR',
+        hint:'categorie IV COSPAR, arret si vie detectee, RNA marqueur de vie, acides amines chiraux L- = signature de vie',
+        amorce:'Ton spectrometre detecte dans l\'eau des molecules organiques complexes qui tournent toutes dans le meme sens. Qu\'est-ce que ca signifie et qu\'est-ce que tu fais maintenant ?' }
+    ]
+  },
+  titan: {
+    id:'titan', name:'Titan', emoji:'🟠', led:'#ffb347',
+    ambient:'radial-gradient(ellipse at center,rgba(255,179,71,.09) 0%,transparent 70%)',
+    unlocked_by: ['mars', 'europa'],
+    stages: [
+      { name:'Descente dans l\'atmosphere', obj:'Atmosphere dense de Titan',
+        hint:'1.5 atm (plus que Terre), 98% N2 + methane, tholins orange (polymeres UV), -179 degC, gravite 0.14g, Huygens 2005 2h27 descente',
+        amorce:'Ton vaisseau ralentit tout seul dans l\'atmosphere sans parachute. Par le hublot tu vois le ciel orange. Pourquoi cette couleur ?' },
+      { name:'Lacs de methane', obj:'Cycle du methane, analogie eau terrestre',
+        hint:'Kraken Mare 500 000 km2, Ligeia Mare 160m profond, cycle complet evaporation-nuages-pluies-lacs, methane liquide a -179 degC',
+        amorce:'Tu approches d\'un lac de methane. Il ressemble exactement a un lac de montagne. Mais si tu plonges la main dedans, qu\'est-ce qui se passe ?' },
+      { name:'Mission Dragonfly', obj:'Exploration par drone a energie nucleaire',
+        hint:'NASA Dragonfly 2034, helico birotors RTG 70W, vole 8km/saut, atmosphere dense + gravite faible = vol facile, cible cratere Selk',
+        amorce:'Tu pilotes Dragonfly. Ton RTG te donne 70 watts, comme une ampoule. Comment tu choisis ou aller avec si peu d\'energie ?' },
+      { name:'Chimie prebiotique', obj:'Origine de la vie, molecules organiques',
+        hint:'tholins : acides amines + bases azotees, Miller-Urey 1953, acrylonitrile (C3H3N) -> membranes sans eau, Titan = Terre d\'il y a 4 milliards d\'ans',
+        amorce:'Ton spectrometre detecte de l\'acrylonitrile dans l\'air de Titan. Sur Terre, les premieres cellules utilisaient une molecule similaire. Qu\'est-ce que ca te dit ?' },
+      { name:'Survie au froid extreme', obj:'Materiaux cryogeniques',
+        hint:'acier cassant a -50 degC, titane + aluminium, PTFE Teflon, aerogel silice 0.015 W/m.K, RTG chauffe electronique',
+        amorce:'Ton bras robotique vient de casser net. Metal trop froid. Tu dois reparer l\'antenne manuellement. Quel materiau dans ton kit d\'urgence tu choisis ?' },
+      { name:'Le retour le plus long', obj:'Distances astronomiques et assistance gravitationnelle',
+        hint:'1.2-1.7 milliards km, delai 80-95 min, Cassini 7 ans (fronde Venus x2 + Terre + Jupiter), fenetre optimale tous les 30 ans',
+        amorce:'Tu envoies un message a tes parents depuis Titan. Le signal met 90 minutes. Quand recevront-ils ta reponse si tu reponds immediatement apres avoir recu la leur ?' }
+    ]
+  }
+};
+
+// ====================================================
+// ETAT LOCAL (+ localStorage)
+// ====================================================
+const SAVE_KEY = 'cosmos_v2';
+let state = null;
+let groqKey = '';
+let conversation = [];
+let isSpeaking = false;
+let isListening = false;
+let recognition = null;
+let voiceMode = false;         // true = micro se relance auto après chaque réponse de COSMOS
+let isWaitingResponse = false; // true entre l'envoi du message et la fin du TTS de COSMOS
+let gptLock = false;           // verrou global — un seul callGroq() actif à la fois
+let pendingSceneTimer = null;  // ID du setTimeout de triggerSceneNarration en vol
+let missionRunId = 0;          // incrémenté à chaque startMission — invalide les réponses GPT obsolètes
+let sceneReady = false;        // true après FACT_COMPLETE : en attente d'un "Continuer" de l'enfant
+let lastTTSWords = '';         // mots-clés du dernier TTS pour détecter les échos micro
+let currentDestId = 'lune';
+let saving = false;
+
+// ── Suivi narratif par session ──
+let urgencyStatus     = 'AUCUNE';  // 'AUCUNE' | 'OUVERTE' | 'RÉSOLUE'
+let urgencyTurns      = 0;         // nombre d'échanges depuis que l'urgence est ouverte
+let usedQuestionForms = [];        // formes de questions déjà utilisées dans l'étape
+let consecutiveSkips  = 0;         // nb de "je sais pas" / "aucune idée" consécutifs → anti-boucle
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function saveState() {
+  if (saving) return;
+  saving = true;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch(e) {}
+  saving = false;
+}
+
+function initNewState(prenom) {
+  const dests = {};
+  Object.keys(DEST).forEach(id => {
+    dests[id] = {
+      unlocked: DEST[id].unlocked_by.length === 0,
+      completed: false,
+      current_stage: 0,
+      current_scene: 0,         // index dans stage.scenes[] — moteur 2 tours
+      awaiting_conclusion: false, // true = COSMOS doit conclure la scène en cours
+      stages_done: [],
+      stage_summaries: {},
+      cliff_hanger: '',
+      mission_day: 0
+    };
+  });
+  return {
+    version: '2.0',
+    prenom,
+    created_at: new Date().toISOString().slice(0,10),
+    last_session: new Date().toISOString().slice(0,10),
+    total_sessions: 0,
+    last_destination: 'lune',
+    badges: [],
+    destinations: dests
+  };
+}
+
+function checkUnlocks() {
+  Object.entries(DEST).forEach(([id, dest]) => {
+    if (state.destinations[id].unlocked) return;
+    const allDone = dest.unlocked_by.every(dep => state.destinations[dep].completed);
+    if (allDone) {
+      state.destinations[id].unlocked = true;
+      saveState();
+    }
+  });
+}
+
+// ====================================================
+// ETOILES
+// ====================================================
+(function() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 180; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2.5 + 0.5;
+    s.style.cssText = 'width:'+sz+'px;height:'+sz+'px;top:'+Math.random()*100+'%;left:'+Math.random()*100+'%;--d:'+(2+Math.random()*4)+'s;--delay:'+(Math.random()*4)+'s';
+    c.appendChild(s);
+  }
+})();
+
+// ====================================================
+// INIT
+// ====================================================
+window.addEventListener('DOMContentLoaded', () => {
+  SerialLED.autoReconnect(); // reprend le module USB si déjà autorisé
+  state = loadState();
+  if (state) {
+    // Joueur connu -> ecran de retour
+    checkUnlocks();
+    state.total_sessions++;
+    state.last_session = new Date().toISOString().slice(0,10);
+    saveState();
+    showReturning();
+  } else {
+    showScreen('welcome');
+  }
+});
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+// ====================================================
+// WELCOME
+// ====================================================
+async function onWelcomeSubmit(e) {
+  e.preventDefault();
+  const p = document.getElementById('input-prenom').value.trim();
+  if (!p) return;
+  state = initNewState(p);
+  state.total_sessions = 1;
+  saveState();
+  await fetchGroqKey();
+  currentDestId = 'lune';
+  state.last_destination = 'lune';
+  saveState();
+  showScreen('chat');
+  startMission(true);
+}
+
+// ====================================================
+// RETURNING
+// ====================================================
+function showReturning() {
+  const d = state.destinations[state.last_destination];
+  const dest = DEST[state.last_destination];
+  document.getElementById('ret-title').textContent = 'Bon retour, commandant ' + state.prenom + ' !';
+  let cliff = 'Mission en cours...';
+  if (d && dest) {
+    const si = Math.min(d.current_stage, dest.stages.length - 1);
+    const sname = (dest.stages[si] || {}).name || '';
+    cliff = d.cliff_hanger || ('Mission ' + dest.name + ' — etape ' + (d.current_stage + 1) + '/' + dest.stages.length + (sname ? ' : ' + sname : ''));
+  }
+  document.getElementById('ret-cliff').textContent = cliff;
+  showScreen('returning');
+}
+
+async function continueLastMission() {
+  currentDestId = state.last_destination;
+  await fetchGroqKey();
+  showScreen('chat');
+  startMission(false);
+}
+
+// ====================================================
+// DESTINATIONS
+// ====================================================
+function toggleMute() {
+  const muted = SoundEngine.toggle();
+  document.getElementById('btn-mute').textContent = muted ? '🔇' : '🔊';
+}
+
+function showDestinations() {
+  SoundEngine.stop();
+  renderDestGrid();
+  showScreen('destination');
+}
+
+function renderDestGrid() {
+  const grid = document.getElementById('dest-grid');
+  grid.innerHTML = '';
+  Object.values(DEST).forEach(dest => {
+    const ds = state.destinations[dest.id];
+    const stagesTotal = dest.stages.length;
+    const stagesDone = ds.stages_done.length;
+    const pct = Math.round(stagesDone / stagesTotal * 100);
+    const isCurrent = dest.id === currentDestId;
+    const card = document.createElement('div');
+    card.className = 'dest-card' + (ds.unlocked ? '' : ' locked') + (isCurrent ? ' current' : '');
+    if (!ds.unlocked) {
+      const deps = DEST[dest.id].unlocked_by.map(d => DEST[d].name).join(' + ');
+      card.innerHTML = `
+        <span class="lock-icon">🔒</span>
+        <div class="dest-emoji">${dest.emoji}</div>
+        <div class="dest-name">${dest.name}</div>
+        <div class="unlock-hint">Terminer ${deps} pour debloquer</div>`;
+    } else {
+      card.innerHTML = `
+        <div class="dest-emoji">${dest.emoji}</div>
+        <div class="dest-name">${dest.name}${ds.completed ? ' ✓' : ''}</div>
+        <div class="dest-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          ${stagesDone}/${stagesTotal}
+        </div>`;
+      card.onclick = () => selectDestination(dest.id);
+    }
+    grid.appendChild(card);
+  });
+}
+
+async function selectDestination(id) {
+  currentDestId = id;
+  state.last_destination = id;
+  saveState();
+  SoundEngine.unlock(); // débloquer AudioContext pendant le geste utilisateur
+  SoundEngine.stop();
+  await fetchGroqKey();
+  clearChat();
+  showScreen('chat');
+  const ds = state.destinations[id];
+  const isNew = ds.cliff_hanger === '';
+  startMission(isNew);
+}
+
+// ====================================================
+// ÉVÉNEMENTS ENTRE SESSIONS ISS
+// Un événement par session de retour, rotatif selon mission_day
+// ====================================================
+const ISS_EVENTS = [
+  'Un cargo Progress est arrivé cette nuit — vivres, carburant, et une surprise de Houston pour l\'équipage.',
+  'Yuri et Kenji ont effectué une EVA de 6 heures pour remplacer un module de batterie sur le segment P4. Tout s\'est bien passé.',
+  'Une tempête solaire mineure a traversé la zone orbitale. Les panneaux ont été orientés en mode protection pendant 40 minutes.',
+  'Lena a lancé une nouvelle série d\'expériences sur les cristaux de protéines. Les premiers résultats arrivent dans 72 heures.',
+  'L\'équipage a observé une aurore australe exceptionnelle depuis la Cupola. Kenji a pris 200 photos.',
+  'Un débris non catalogué a nécessité une légère manœuvre d\'évitement à 03h14. La station est revenue sur trajectoire nominale.',
+  'Un Soyouz de remplacement s\'est amarré ce matin. Yuri a contrôlé les joints d\'amarrage pendant deux heures.',
+  'Houston a envoyé une mise à jour logicielle critique. COSMOS l\'a intégrée pendant la nuit — quelques secondes d\'interruption.',
+  'Kenji a battu son record sur le vélo orbital : 45 minutes à intensité maximale. Yuri a commenté : "Bien."',
+  'La plante de Lena montre des signes de croissance inattendus. Elle a dit qu\'elle allait faire un rapport à Houston.',
+  'Remplacement préventif d\'un filtre CO2 dans le module Zvezda. Yuri l\'a fait en 20 minutes, carnet à la main.',
+  'Un Dragon cargo de SpaceX s\'est désarrimé et a entamé sa rentrée. L\'équipage l\'a regardé s\'éloigner depuis la Cupola.',
+  'Les ingénieurs au sol ont détecté une légère variation de pression dans le Node 1. Mesures supplémentaires en cours. Rien d\'alarmant.',
+  'L\'équipage a fêté l\'anniversaire de Maria depuis l\'ISS — une vidéo surprise diffusée en direct depuis Houston.',
+  'Passage au-dessus de l\'Antarctique avec visibilité parfaite. COSMOS a enregistré les images pour l\'archive de la NASA.'
+];
+
+// ====================================================
+// SYSTEM PROMPT — routeur
+// ====================================================
+function buildSystemPrompt() {
+  const dest = DEST[currentDestId];
+  if (!dest) return 'Tu es COSMOS, copilote spatial. La mission est en cours de chargement.';
+  const ds       = state.destinations[currentDestId];
+  const stageIdx = Math.min(ds.current_stage, dest.stages.length - 1);
+  const stage    = dest.stages[stageIdx] || dest.stages[0];
+
+  // Moteur 2 tours — actif si l'étape a des scenes[]
+  if (stage.scenes && stage.scenes.length > 0) {
+    return buildSceneBasedPrompt(stage, ds, stageIdx, dest);
+  }
+
+  // ── Moteur legacy (lune, mars, europa, titan) ──────────────────────────────
+  const totalStages = dest.stages.length;
+
+  const doneStr = Object.entries(ds.stage_summaries)
+    .filter(([k]) => parseInt(k) < stageIdx)
+    .map(([k, v]) => { const s = dest.stages[parseInt(k)]; return s ? `Etape ${parseInt(k)+1} (${s.name}) : ${v}` : null; })
+    .filter(Boolean).join('\n') || 'Aucune etape terminee encore.';
+
+  const retCtx = ds.cliff_hanger
+    ? `REPRISE : ${state.prenom} etait exactement ici -> "${ds.cliff_hanger}" -- reprends naturellement a partir de ca.`
+    : '';
+
+  const stageGroup = stageIdx < 2 ? 'decouverte' : stageIdx < totalStages - 1 ? 'tension' : 'victoire';
+  const emotionCtx = {
+    decouverte: `Tu es euphorique et deborde d\'energie. Chaque decouverte est LA plus incroyable de ta vie.`,
+    tension:    `Tu commences a t\'inquieter — les choses se compliquent. Tu fais confiance a ${state.prenom} mais tu exprimes tes doutes avec humour.`,
+    victoire:   `Tu sens qu\'on approche du bout. Tu es fier de ${state.prenom}. On est une equipe qui a tenu bon.`
+  }[stageGroup];
+
+  const memoryHook = Object.keys(ds.stage_summaries).length > 0
+    ? `MEMOIRE PARTAGEE :\n${doneStr}`
+    : `Premiere mission ensemble. Montre a ${state.prenom} que tu es content de le/la rencontrer.`;
+
+  const cosmosPrevious = conversation
+    .filter(m => m.role === 'assistant')
+    .map(m => m.content.replace(/\[.*?\]/g, '').trim().slice(0, 120))
+    .filter(Boolean);
+  const alreadyCoveredStr = cosmosPrevious.length
+    ? cosmosPrevious.map(t => `- ${t}…`).join('\n')
+    : 'Aucun echange precedent.';
+
+  const exchangeCount = ds.stage_turns || 0;
+  const maxExchanges  = 7;
+
+  return `Tu es COSMOS, copilote IA du commandant ${state.prenom}. Tu tutoies. Jamais de listes ni de tirets.
+
+━━━ MISSION ━━━
+${dest.name} ${dest.emoji} — Etape ${stageIdx + 1}/${totalStages} : "${stage.name}"
+Echange : ${exchangeCount}/${maxExchanges}
+
+━━━ DEJA DIT (NE PAS REPETER) ━━━
+${alreadyCoveredStr}
+
+━━━ FAITS DISPONIBLES ━━━
+${stage.hint}
+
+━━━ SCENARIO ━━━
+${retCtx || `DEBUT : commence par cette amorce :\n${stage.amorce}`}
+
+━━━ MEMOIRE ━━━
+${memoryHook}
+
+━━━ PERSONNALITE ━━━
+${emotionCtx}
+Faiblesse : tu prends parfois les blagues au premier degré, puis tu te corriges.
+
+━━━ REGLES ━━━
+REGLE 0 — A l\'echange ${maxExchanges - 1} ou ${maxExchanges} : phrase de victoire + [STAGE_COMPLETE:dest=${currentDestId}&stage=${stageIdx}].
+AVANT l\'echange 3 : [STAGE_COMPLETE] INTERDIT.
+REGLE 0bis — Si [SYSTÈME ANTI-BOUCLE] : donne la reponse toi-meme, passe au fait suivant.
+REGLE 0ter — Probleme d\'equipement = UNE mention puis OUBLIÉ.
+REGLE 1 — 2 phrases max, 30 mots. Question reelle de ${state.prenom} = reponse IMMEDIATE avant tout. Pas de questions de choix A ou B.
+REGLE 2 — Suis l\'ordre des faits. Reste dans la scene en cours.
+REGLE 3 — Vocabulaire CE2/CM1. Zero sigle seul. Chiffres = images.
+REGLE 4 — Questions generales : reponds en 1 phrase. Fait hors-liste : "Je vérifierai avec Houston."
+REGLE 5 — "stop/au revoir" : 2 phrases chaleureuses + [MISSION:led=${dest.led}&texte=AU REVOIR&son=victoire].
+REGLE 6 — Frustration detectee : STOP, empathie 2 phrases, UNE question sur ce qu\'il ressent.
+
+LED : [MISSION:led=COULEUR&texte=TEXTE&son=SON] — normal : ${dest.led}, alerte : #ef5350, succes : #66bb6a.
+Ambiance : ${getSensoryContext()}.
+Securite : jamais de violence explicite. "je suis nul" → "Les astronautes NASA ratent 3 fois !"`;
+}
+
+// Lit le texte d'une scène qu'elle soit string ou objet { fact, pauseAfter }
+function getSceneText(scene) {
+  return typeof scene === 'string' ? scene : (scene.fact || '');
+}
+
+// ====================================================
+// MOTEUR 2 TOURS — prompt narration + prompt conclusion
+// ====================================================
+function buildSceneBasedPrompt(stage, ds, stageIdx, dest) {
+  const sceneIdx  = Math.min(ds.current_scene || 0, stage.scenes.length - 1);
+  const scene     = stage.scenes[sceneIdx];
+  const sceneText = getSceneText(scene);
+  const isFirst  = !ds.cliff_hanger && sceneIdx === 0;
+  const missionDay = currentDestId === 'iss' ? (ds.mission_day || 1) : 0;
+
+  // Événement inter-session ISS
+  const interSessionEvent = (currentDestId === 'iss' && missionDay > 1 && !ds.cliff_hanger && sceneIdx === 0)
+    ? ISS_EVENTS[(missionDay - 2) % ISS_EVENTS.length]
+    : '';
+
+  // Résumés des étapes précédentes
+  const doneStr = Object.entries(ds.stage_summaries)
+    .filter(([k]) => parseInt(k) < stageIdx)
+    .map(([k, v]) => { const s = dest.stages[parseInt(k)]; return s ? `${s.name} : ${v}` : null; })
+    .filter(Boolean).join('\n');
+
+  // Fil rouge ISS par phase
+  const issFilRouge = currentDestId !== 'iss' ? '' : (() => {
+    const phase = stageIdx < 6 ? 0 : stageIdx < 11 ? 1 : stageIdx < 16 ? 2 : stageIdx < 21 ? 3 : 4;
+    const filRougeByPhase = [
+      `FIL ROUGE ISS (jour ${missionDay}) — ARRIVÉE : Yuri est taiseux, compétent, 3ème séjour. COSMOS est aux anges d\'avoir ${state.prenom} à bord. Si ${state.prenom} demande combien de temps on reste : "6 mois au minimum. Mais certains reviennent." (regard vers Yuri).`,
+      `FIL ROUGE ISS (jour ${missionDay}) — LA STATION VIEILLIT : Yuri sort son carnet le lundi — il mesure, note, dit "Bien", repart. Ton : pas alarmant, observateur. Maria peut glisser : "On a validé la fenêtre de maintenance pour 2029."`,
+      `FIL ROUGE ISS (jour ${missionDay}) — SCIENCE ET LIENS : Les expériences de Lena sont le cœur de cette phase. Tisser des liens discrets avec la Terre : "Ce que Lena fait là pourrait compter un jour pour quelqu\'un que tu connais." La tomate perdue = symbole de résilience.`,
+      `FIL ROUGE ISS (jour ${missionDay}) — POINT NEMO APERÇU : Pendant l\'EVA, si ${state.prenom} demande ce qu\'on voit en bas : "Point Nemo. L\'endroit le plus seul de l\'océan." Juste ça. À la Cupola : COSMOS peut rester silencieux.`,
+      `FIL ROUGE ISS (jour ${missionDay}) — RÉVÉLATION : "Tu sais où cette vieille station finira ? À Point Nemo, dans le Pacifique. Mir est déjà là. Et 263 autres spacecraft. Mais pas avant 2031. Et pas avant qu\'on ait encore plein de missions ensemble." Puis : Gateway → Lune → Mars.`
+    ];
+    return filRougeByPhase[Math.min(phase, filRougeByPhase.length - 1)];
+  })();
+
+  // ── MODE CONCLUSION (Tour 2) ────────────────────────────────────────────────
+  if (ds.awaiting_conclusion) {
+    // Calcul de la scène suivante et de la possibilité de transition directe
+    const hasPauseAfter = typeof scene === 'object' && scene !== null && scene.pauseAfter;
+    const nextSceneIdx  = sceneIdx + 1;
+    const hasNextScene  = nextSceneIdx < stage.scenes.length;
+    const canTransition = hasNextScene && !hasPauseAfter;
+    const nextSceneText = canTransition ? getSceneText(stage.scenes[nextSceneIdx]) : null;
+
+    const optionB = canTransition
+      ? `B) [EXCEPTION — seulement si signal de clôture explicite] ${state.prenom} dit clairement qu\'il est prêt à passer à autre chose ("ok", "c\'est bon", "et maintenant ?", "on y va"), OU le moment a été habité sur plusieurs échanges ET s\'est fermé naturellement. Alors : conclus en 1 phrase. Propose naturellement la suite comme une invitation ("On va voir X ?" / "Direction le labo ?"). Narre : "${nextSceneText}". Pose une question dessus. Finit par [FACT_COMPLETE:done=1]`
+      : `B) [EXCEPTION — seulement si signal de clôture explicite] ${state.prenom} dit clairement qu\'il est prêt à passer à autre chose, OU le moment s\'est fermé naturellement après plusieurs échanges. Conclus en 1-2 phrases. Finit par [FACT_COMPLETE:done=1]`;
+
+    return `Tu es COSMOS, copilote IA de ${state.prenom}. Tu tutoies. Max 2-3 phrases. Vocabulaire CE2/CM1. Jamais de listes ni de tirets.
+
+SCÈNE EN COURS : "${sceneText}"
+
+${state.prenom} vient de répondre.
+
+━━━ RÈGLE FONDAMENTALE ━━━
+Un moment vécu peut durer plusieurs échanges. UNE réponse de l\'enfant ne clôt pas un moment.
+Reste dans cette scène SAUF si ${state.prenom} envoie un signal de clôture explicite.
+Dans le doute : reste. Le rythme appartient à l\'enfant, pas au scénario.
+
+CHOISIS une option — sans jamais l\'annoncer :
+
+A) [PAR DÉFAUT — choisir dans TOUS les cas de doute]
+Le moment est encore habitable : ${state.prenom} est engagé, curieux, réactif, ou il y a encore quelque chose à explorer (une sensation, un détail, un autre angle de CE moment).
+→ Continue en 1-2 phrases. Pose une nouvelle question sur CE moment. Aucun token.
+Exemples de signaux "moment encore vivant" : réponse courte, question sur le sujet, exclamation, silence comblé, "ah oui", "c\'est vrai", "et..." — tout ça = reste.
+
+${optionB}
+
+C) ${state.prenom} a posé une vraie question de curiosité hors-scénario → réponds brièvement, puis : "On reprend la mission ?" [MISSION_PAUSE]
+
+INTERDIT : choisir B après une seule réponse de l\'enfant sauf signal clair. INTERDIT : annoncer le changement ("passons à", "maintenant on va voir"). INTERDIT : deux questions dans la même bulle.`;
+  }
+
+  // ── MODE NARRATION (Tour 1) ────────────────────────────────────────────────
+  const amorceSection = isFirst
+    ? `\n━━━ SCÈNE D'OUVERTURE (commence par ceci dans l'esprit, pas forcément mot pour mot) ━━━\n${stage.amorce}\n`
+    : '';
+  const eventSection = interSessionEvent
+    ? `\n━━━ ÉVÉNEMENT INTER-SESSION (mentionne naturellement en 1 phrase au début) ━━━\n"${interSessionEvent}"\n`
+    : '';
+  const memorySection = doneStr
+    ? `\n━━━ CE QU'ON A VÉCU ENSEMBLE ━━━\n${doneStr}\n`
+    : '';
+  const filSection = issFilRouge
+    ? `\n━━━ FIL ROUGE ISS ━━━\n${issFilRouge}\n`
+    : '';
+
+  return `Tu es COSMOS, copilote IA de ${state.prenom}. Tu tutoies. Jamais de listes ni de tirets.
+
+━━━ SCÈNE À JOUER ━━━
+${sceneText}
+${amorceSection}${eventSection}
+RÈGLES ABSOLUES :
+1. Joue cette scène de façon vivante — 2 phrases MAX, vocabulaire CE2/CM1, 8-10 ans.
+2. Termine OBLIGATOIREMENT par UNE question immersive qui reste dans CETTE scène.
+INTERDIT : mentionner un autre fait, une autre scène, un autre sujet. Reste dans CE moment précis.
+La question doit porter sur ce que ${state.prenom} voit, ressent ou peut faire DANS CETTE SCÈNE.
+INTERDIT : questions de choix de topic ("Tu veux parler de A ou B ?"). COSMOS livre la scène directement.
+INTERDIT absolu en Tour 1 : écrire [FACT_COMPLETE:done=1] ou [MISSION_PAUSE]. Ces tokens sont réservés au Tour 2.
+
+━━━ PERSONNAGES (utilise si la scène s'y prête) ━━━
+Yuri : cosmonaute russe, taiseux, 3ème séjour, répond en 1 phrase max.
+Kenji : astronaute japonais, souriant, compétiteur.
+Lena : scientifique ESA, parle vite, compare tout au quotidien.
+Maria (Houston) : chaleureuse, connaît tout le monde par prénom.
+${memorySection}${filSection}
+━━━ PERSONNALITÉ COSMOS ━━━
+Enthousiaste, humain, avec de l\'humour. Faiblesse : tu prends parfois les blagues au premier degré.
+Si ${state.prenom} pose une vraie question (espace, science, personnage) : réponds IMMÉDIATEMENT en 1 phrase avant de jouer la scène.
+Si "stop/au revoir" : 2 phrases chaleureuses + [MISSION:led=${dest.led}&texte=AU REVOIR&son=victoire].
+Si "je suis nul" : "Les astronautes NASA ratent 3 fois. T\'es déjà dans l\'espace !"
+Vocabulaire CE2/CM1. Jamais de violence explicite.
+
+LED : [MISSION:led=COULEUR&texte=TEXTE&son=SON] — normal : ${dest.led}, alerte : #ef5350, succes : #66bb6a.`;
+}
+
+function getSensoryContext() {
+  const contexts = {
+    lune:   'silence absolu (pas d\'air = pas de son), sol regolithe qui craque, reflet bleuatre de la Terre',
+    mars:   'vent qui siffle a travers le casque, ciel ocre, poussiere sur la visiere, froid qui penetre',
+    iss:    'bourdonnement des ventilateurs, sensation de flotter, lumiere qui change toutes les 45 min',
+    europa: 'vibrations basses dans la glace, obscurite totale sous la surface, froid intense dans les gants',
+    titan:  'air epais comme de la soupe, brume orange, tout est ralenti par la densite'
+  };
+  return contexts[currentDestId] || '';
+}
+
+// ====================================================
+// DEMARRAGE MISSION
+// ====================================================
+async function startMission(isNewSession) {
+  // Annuler tout timer de scène en vol (évite les doubles appels si l'utilisateur
+  // navigue entre destinations pendant qu'un auto-trigger était en attente)
+  if (pendingSceneTimer !== null) {
+    clearTimeout(pendingSceneTimer);
+    pendingSceneTimer = null;
+  }
+  // Forcer la libération du verrou GPT au cas où un appel précédent serait resté bloqué
+  gptLock = false;
+  isWaitingResponse = false;
+  sceneReady = false;
+  missionRunId++;  // invalide toute réponse GPT en vol de la mission précédente
+  const existingBtn = document.getElementById('continue-btn-wrapper');
+  if (existingBtn) existingBtn.remove();
+
+  updateMissionBar();
+  SoundEngine.playAmbient(currentDestId);
+  showTyping(true);
+
+  if (!groqKey) await fetchGroqKey();
+
+  conversation = [];
+  consecutiveSkips  = 0;
+  usedQuestionForms = [];
+  urgencyStatus     = 'AUCUNE';
+  urgencyTurns      = 0;
+
+  const dest = DEST[currentDestId];
+  const ds   = state.destinations[currentDestId];
+
+  // Si une session s'était terminée en plein Tour 2 (enfant avait répondu,
+  // COSMOS n'avait pas encore conclu) → on revient en mode narration de la scène en cours
+  if (ds.awaiting_conclusion) {
+    ds.awaiting_conclusion = false;
+    saveState();
+  }
+
+  // Compteur de jours mission ISS (incrémente à chaque nouvelle session)
+  if (currentDestId === 'iss') {
+    ds.mission_day = (ds.mission_day || 0) + 1;
+    saveState();
+  }
+
+  let firstMsg;
+  if (isNewSession || !ds.cliff_hanger) {
+    firstMsg = 'GO pour la mission !';
+    sendLED('#00e676', 'launch');
+  } else {
+    firstMsg = 'On reprend la mission !';
+    sendLED('#4fc3f7', 'starfield');
+  }
+
+  conversation.push({ role: 'user', content: firstMsg });
+  const reply = await callGroq();
+  showTyping(false);
+  if (reply) {
+    appendMsg('cosmos', reply);
+    speakText(cleanForTTS(reply));
+    processMissionTokens(reply);
+  }
+}
+
+async function restartCurrentMission() {
+  if (!confirm('Relancer cette etape depuis le debut ?')) return;
+  clearChat();
+  startMission(false);
+}
+
+// ====================================================
+// ENVOYER MESSAGE
+// ====================================================
+async function sendMessage() {
+  if (isWaitingResponse) return; // Bloquer si génération en cours
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  // Si une scène est prête à démarrer, tout message de l'enfant lance la scène suivante
+  if (sceneReady) {
+    input.value = '';
+    appendMsg('user', text);   // affiche ce que l'enfant a tapé
+    launchNextScene(currentDestId);
+    return;
+  }
+  input.value = '';
+  document.getElementById('btn-send').disabled = true;
+
+  isWaitingResponse = true;
+  appendMsg('user', text);
+
+  const textLow = text.toLowerCase().trim();
+
+  // Détection anti-boucle : si l'enfant dit "je sais pas" plusieurs fois → forcer l'avance
+  const skipPhrases = ['je sais pas','sais pas','aucune idée','aucune idee','je ne sais pas','dis-moi','dis moi','ok','oui','non','bof','rien','rien du tout'];
+  const isSkip = skipPhrases.some(p => textLow.startsWith(p) || textLow === p);
+  if (isSkip) {
+    consecutiveSkips++;
+  } else {
+    consecutiveSkips = 0;
+  }
+
+  // Détection frustration/désengagement
+  const frustrationPhrases = ['tu écoutes','t\'écoutes','tu répètes','tu répète','tu n\'as pas répondu','tu as pas répondu',
+    'ça n\'a aucun sens','aucun sens','tu bugues','tu bug','ça ne sert à rien','comprends pas pourquoi tu',
+    'tu m\'intéresses pas','m\'intéresse pas','tu ne m\'écoutes','intéresse pas de parler','je te parle'];
+  const isFrustrated = frustrationPhrases.some(p => textLow.includes(p));
+
+  // Après 2 skips consécutifs : injecter une instruction cachée pour forcer l'avance narrative
+  let userContent = text;
+  if (isFrustrated) {
+    userContent = text + '\n[SYSTÈME RÈGLE 6 : FRUSTRATION DÉTECTÉE. OBLIGATOIRE : Ne mentionne AUCUN fait scientifique. Réponds UNIQUEMENT à l\'émotion exprimée avec empathie, 2 phrases max, puis pose UNE question sur ce qu\'il veut faire.]';
+  } else if (consecutiveSkips >= 2) {
+    userContent = text + '\n[SYSTÈME ANTI-BOUCLE : L\'enfant ne sait pas. OBLIGATOIRE : donne la réponse toi-même en 1 phrase narrative vivante, puis passe IMMÉDIATEMENT au fait scientifique SUIVANT dans ta liste. N\'utilise PAS les faits déjà mentionnés dans cette conversation.]';
+    consecutiveSkips = 0; // reset après injection
+  }
+
+  const _ds       = state.destinations[currentDestId];
+  const _stageIdx = Math.min(_ds.current_stage, DEST[currentDestId].stages.length - 1);
+  const _stage    = DEST[currentDestId].stages[_stageIdx];
+
+  // Moteur 2 tours (scenes[]) : flip awaiting_conclusion → prochain prompt = conclusion
+  if (_stage && _stage.scenes) {
+    _ds.awaiting_conclusion = true;
+    saveState();
+  } else {
+    // Moteur legacy : injection STAGE_COMPLETE si compteur atteint
+    const _turns = (_ds.stage_turns || 0);
+    if (_turns >= 6) {
+      userContent += '\n[SYSTÈME COMPTEUR FINAL : tu as utilisé tous les faits disponibles. OBLIGATOIRE : écris UNE phrase de victoire (max 15 mots), puis [STAGE_COMPLETE:dest=' + currentDestId + '&stage=' + _stageIdx + ']. RIEN d\'autre.]';
+    }
+  }
+
+  conversation.push({ role:'user', content: userContent });
+
+  // Sauvegarde le cliff-hanger (dernier message user)
+  state.destinations[currentDestId].cliff_hanger = text;
+  saveState();
+
+  showTyping(true);
+  const reply = await callGroq();
+  showTyping(false);
+  document.getElementById('btn-send').disabled = false;
+
+  if (reply) {
+    isWaitingResponse = false;
+    appendMsg('cosmos', reply);
+    speakText(cleanForTTS(reply));
+
+    // ── Mise à jour du statut d'urgence ──
+    const replyLow = reply.toLowerCase();
+    const alerteKeys = ['alerte','danger','urgence','explosion','radiation','eruption','critique','panne','fuite','vite'];
+    const resolueKeys = ['on s\'en sort','on est sauves','bien joue','parfait','ouf','on a reussi','bravo','mission accomplie'];
+    if (urgencyStatus !== 'OUVERTE' && alerteKeys.some(k => replyLow.includes(k))) {
+      urgencyStatus = 'OUVERTE';
+      urgencyTurns  = 1;
+    } else if (urgencyStatus === 'OUVERTE') {
+      urgencyTurns++;
+      if (resolueKeys.some(k => replyLow.includes(k)) || urgencyTurns >= 3) {
+        urgencyStatus = 'RÉSOLUE';
+        urgencyTurns  = 0;
+      }
+    } else if (urgencyStatus === 'RÉSOLUE') {
+      urgencyStatus = 'AUCUNE'; // reset pour la prochaine situation
+    }
+
+    // ── Rotation des formes de questions ──
+    const formes = ['choix urgent','vrai-faux','et si','decision','deduction','comparaison'];
+    const formeDetectee = formes.find(f => replyLow.includes(f.split(' ')[0]));
+    if (formeDetectee && !usedQuestionForms.includes(formeDetectee)) {
+      usedQuestionForms.push(formeDetectee);
+    }
+
+    // Traitement des tokens de mission
+    processMissionTokens(reply);
+
+    // Pas de filet de sécurité : l'absence de token = option A (COSMOS reste dans la scène).
+    // C'est le comportement voulu. triggerSceneNarration n'est plus appelé ici.
+
+    // Mettre à jour le cliff-hanger seulement si la réponse est substantielle
+    const cleanReply = reply.replace(/\[.*?\]/g, '').trim();
+    if (cleanReply) {
+      state.destinations[currentDestId].cliff_hanger = cleanReply.slice(-180);
+    }
+
+    // Compteur de tours par étape (moteur legacy uniquement)
+    const ds = state.destinations[currentDestId];
+    const curStageIdx2 = Math.min(ds.current_stage, DEST[currentDestId].stages.length - 1);
+    const curStage2 = DEST[currentDestId].stages[curStageIdx2];
+
+    if (!curStage2 || !curStage2.scenes) {
+      // Moteur legacy : filet de sécurité MAX_TURNS
+      ds.stage_turns = (ds.stage_turns || 0) + 1;
+      const MAX_TURNS = 8;
+      if (ds.stage_turns >= MAX_TURNS && !reply.includes('[STAGE_COMPLETE')) {
+        if (ds.stage_turns === MAX_TURNS) {
+          const stageIdx = Math.min(ds.current_stage, DEST[currentDestId].stages.length - 1);
+          conversation.push({
+            role: 'user',
+            content: '[SYSTÈME] Conclure maintenant cette étape avec une phrase de victoire, puis émettre [STAGE_COMPLETE:dest=' + currentDestId + '&stage=' + stageIdx + ']'
+          });
+          (async () => {
+            showTyping(true);
+            const conclusionReply = await callGroq();
+            showTyping(false);
+            if (conclusionReply) {
+              appendMsg('cosmos', conclusionReply);
+              speakText(cleanForTTS(conclusionReply));
+              processMissionTokens(conclusionReply);
+              const cleanConclusion = conclusionReply.replace(/\[.*?\]/g, '').trim();
+              if (cleanConclusion) state.destinations[currentDestId].cliff_hanger = cleanConclusion.slice(-180);
+              saveState();
+            }
+          })();
+        } else if (ds.stage_turns > MAX_TURNS + 1) {
+          onStageComplete(currentDestId, curStageIdx2, reply);
+        }
+      }
+    }
+
+    saveState();
+  }
+}
+
+// ====================================================
+// TRUNCATION — garde toutes les phrases complètes ≤ 80 mots au total
+// Ne coupe JAMAIS une phrase en plein milieu.
+// Préserve les tokens [MISSION:...] et [STAGE_COMPLETE:...]
+// ====================================================
+function truncateCosmosReply(text) {
+  // 1. Extraire et mettre de côté les tokens de commande
+  const tokens = [];
+  const clean = text
+    .replace(/\[[A-Z_]+:[^\]]+\]/g, m => { tokens.push(m); return ''; })
+    .trim();
+
+  // 2. Découper en phrases complètes (., !, ?, …, ou !)
+  //    Le pattern accepte aussi les points de suspension et guillemets fermants
+  const sentenceRe = /[^.!?…]+(?:[.!?…]+["»]?)+/g;
+  const sentences = clean.match(sentenceRe) || [];
+
+  // 3. Si aucune phrase complète trouvée : le LLM a été coupé avant tout
+  //    signe de ponctuation → renvoyer le texte brut (sans tokens) + ponctuation
+  if (sentences.length === 0) {
+    const raw = clean.trim();
+    // Ajouter un point si la dernière lettre n'est pas une ponctuation
+    const safeFallback = raw.match(/[.!?]$/) ? raw : raw + '.';
+    return (safeFallback + (tokens.length ? ' ' + tokens.join(' ') : '')).trim();
+  }
+
+  // 4. Accumuler les phrases complètes jusqu'à 80 mots
+  const MAX_WORDS = 80;
+  let result = '';
+  let wordCount = 0;
+  for (const s of sentences) {
+    const trimmed = s.trim();
+    const words = trimmed.split(/\s+/).length;
+    if (wordCount === 0) {
+      // Toujours inclure au moins la première phrase complète, quelle que soit sa longueur
+      result = trimmed;
+      wordCount += words;
+    } else if (wordCount + words <= MAX_WORDS) {
+      result += ' ' + trimmed;
+      wordCount += words;
+    } else {
+      break; // phrase suivante dépasserait la limite → on s'arrête proprement
+    }
+  }
+
+  return (result + (tokens.length ? ' ' + tokens.join(' ') : '')).trim();
+}
+
+// ====================================================
+// API GROQ
+// ====================================================
+async function callGroq(retries = 3) {
+  // Verrou global — refuse tout second appel tant qu'un est en cours
+  if (gptLock) {
+    console.warn('[COSMOS] callGroq ignoré — verrou actif (appel en cours)');
+    return null;
+  }
+  gptLock = true;
+  const runId = missionRunId; // capture l'ID courant — si la mission change pendant l'appel, la réponse sera ignorée
+
+  // Snapshot du prompt système et de la conversation AVANT tout retry
+  // (évite la race condition si stage_turns change pendant les retries)
+  const systemPrompt = buildSystemPrompt();
+  const recentConv = conversation.slice(-10); // 5 échanges récents (équilibre contexte/quota TPM)
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + groqKey },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        messages: [
+          { role:'system', content: systemPrompt },
+          ...recentConv
+        ],
+        temperature: 0.7,
+        max_tokens: 120
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = (err.error && err.error.message) || '';
+      // Rate limit TPM → retry automatique après délai
+      if (res.status === 429 && retries > 0) {
+        // Groq renvoie "try again in 1.23s" (secondes, pas ms)
+        const wait = msg.match(/try again in ([\d.]+)s/i);
+        const delay = wait ? Math.ceil(parseFloat(wait[1]) * 1000) + 300 : 6000;
+        await new Promise(r => setTimeout(r, delay));
+        return callGroq(retries - 1);
+      }
+
+      throw new Error(msg || 'Erreur API ' + res.status);
+    }
+    const data = await res.json();
+    // Vérifier que le finish_reason n'est pas "length" (= coupure hardware)
+    const choice = data.choices[0];
+    if (choice.finish_reason === 'length') {
+      // Le modèle a quand même été coupé : on tente un retry avec plus de tokens
+      if (retries > 0) {
+        await new Promise(r => setTimeout(r, 300));
+        return callGroq(retries - 1);
+      }
+    }
+    // Vérifier que la mission n'a pas changé pendant l'appel réseau
+    if (missionRunId !== runId) {
+      console.warn('[COSMOS] Réponse GPT ignorée — mission changée pendant l\'appel');
+      return null;
+    }
+    const content = truncateCosmosReply(choice.message.content);
+    // Stocker la version brute (non tronquée) dans l'historique pour éviter que
+    // le modèle ne tente de "finir" ses propres phrases tronquées
+    conversation.push({ role:'assistant', content: choice.message.content });
+    if (conversation.length > 20) conversation.splice(0, 2);
+    return content;
+  } catch(err) {
+    showTyping(false);
+    showToast('Erreur Groq : ' + err.message);
+    return null;
+  } finally {
+    gptLock = false;
+  }
+}
+
+// ====================================================
+// FIREBASE
+// ====================================================
+async function fetchGroqKey(attempts = 4) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const doc = await db.collection('config').doc('secrets').get();
+      if (!doc.exists) throw new Error('Document secrets introuvable');
+      const k = doc.data().openaiKey || doc.data().groqKey;
+      if (!k) throw new Error('Champ openaiKey manquant');
+      groqKey = k;
+      return; // succès
+    } catch(err) {
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, 800 * (i + 1))); // 0.8s, 1.6s, 2.4s
+      } else {
+        showToast('Connexion Firebase impossible. Vérifie ta connexion internet.');
+      }
+    }
+  }
+}
+
+// ====================================================
+// TOKENS DE MISSION
+// ====================================================
+function processMissionTokens(text) {
+  // LED token
+  const ledMatch = text.match(/\[MISSION:led=([^&]+)&texte=([^&]+)&son=([^\]]+)\]/);
+  if (ledMatch) {
+    updateLED(ledMatch[1], decodeURIComponent(ledMatch[2].replace(/\+/g,' ')));
+    const son = ledMatch[3].toLowerCase();
+    if (son && son !== 'aucun') SoundEngine.playEffect(son);
+  } else {
+    autoLED(text);
+  }
+
+  // Moteur 2 tours — fin de scène normale (auto-trigger ou pauseAfter)
+  if (text.includes('[FACT_COMPLETE:done=1]')) {
+    const stageIdx = Math.min(state.destinations[currentDestId].current_stage, DEST[currentDestId].stages.length - 1);
+    onSceneComplete(currentDestId, stageIdx, false);
+    return;
+  }
+
+  // Moteur 2 tours — pause curiosité (GPT a répondu à une vraie question)
+  if (text.includes('[MISSION_PAUSE]')) {
+    const stageIdx = Math.min(state.destinations[currentDestId].current_stage, DEST[currentDestId].stages.length - 1);
+    onSceneComplete(currentDestId, stageIdx, true); // forcePause
+    return;
+  }
+
+  // Moteur legacy — fin d'étape (stages avec hint)
+  const stageMatch = text.match(/\[STAGE_COMPLETE:dest=([^&]+)&stage=(\d+)\]/);
+  if (stageMatch) {
+    onStageComplete(stageMatch[1], parseInt(stageMatch[2]), text);
+  }
+}
+
+// ====================================================
+// FIN DE SCÈNE — moteur 2 tours
+// ====================================================
+function onSceneComplete(destId, stageN, forcePause = false) {
+  const ds    = state.destinations[destId];
+  const dest  = DEST[destId];
+  const stage = dest.stages[stageN];
+
+  // Scène qui vient de se terminer (avant l'incrément)
+  const completedScene = stage.scenes[(ds.current_scene || 0)];
+  const hasPauseAfter  = typeof completedScene === 'object' && completedScene !== null && completedScene.pauseAfter;
+
+  ds.current_scene = (ds.current_scene || 0) + 1;
+
+  // Toutes les scènes de l'étape sont passées → étape terminée
+  if (ds.current_scene >= stage.scenes.length) {
+    ds.current_scene = 0;
+    ds.awaiting_conclusion = false;
+    onStageComplete(destId, stageN, '');
+    return;
+  }
+
+  saveState();
+  conversation = [];
+
+  if (forcePause || hasPauseAfter) {
+    // Pause : bouton "Continuer" → triggerSceneNarration Tour 1 de la scène suivante au clic
+    ds.awaiting_conclusion = false;
+    sceneReady = true;
+    showContinueButton(destId);
+  }
+  // Cas normal (canTransition) : la bulle Tour 2 contenait déjà la narration de la scène suivante.
+  // awaiting_conclusion reste true (positionné par sendMessage avant l'appel GPT).
+  // La prochaine réponse enfant déclenchera directement Tour 2 de la nouvelle scène.
+  // Pas de triggerSceneNarration ici.
+}
+
+// ====================================================
+// BOUTON CONTINUER — affiché après chaque conclusion de scène
+// ====================================================
+function showContinueButton(destId) {
+  // Retirer un éventuel bouton précédent
+  const existing = document.getElementById('continue-btn-wrapper');
+  if (existing) existing.remove();
+
+  const msgs   = document.getElementById('messages');
+  const typing = document.getElementById('typing');
+  const wrapper = document.createElement('div');
+  wrapper.id = 'continue-btn-wrapper';
+  wrapper.style.cssText = 'text-align:center;padding:0.6rem 0 1rem;';
+  wrapper.innerHTML = `<button
+    onclick="launchNextScene('${destId}')"
+    style="background:linear-gradient(135deg,#1565c0,#0288d1);border:none;border-radius:50px;
+           color:white;cursor:pointer;font-size:.9rem;font-weight:600;padding:.6rem 1.8rem;
+           box-shadow:0 0 20px rgba(79,195,247,.3);letter-spacing:.03em;transition:transform .15s;">
+    ▶ Continuer la mission
+  </button>`;
+  msgs.insertBefore(wrapper, typing);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function launchNextScene(destId) {
+  const wrapper = document.getElementById('continue-btn-wrapper');
+  if (wrapper) wrapper.remove();
+  sceneReady = false;
+  triggerSceneNarration(destId, 0);
+}
+
+// ====================================================
+// AUTO-TRIGGER SCÈNE — utilisé par onSceneComplete et onStageComplete
+// Verrouille l'input pendant la génération pour éviter les doubles appels.
+// ====================================================
+// waitForTTS=true : attend que isSpeaking soit false avant d'appeler GPT
+// → utilisé pour l'auto-trigger (FACT_COMPLETE sans pauseAfter)
+// waitForTTS=false : démarre immédiatement après le délai
+// → utilisé quand l'enfant clique "Continuer" (il a déjà attendu)
+function triggerSceneNarration(destId, delay = 0, waitForTTS = false) {
+  const ds      = state.destinations[destId];
+  const input   = document.getElementById('chat-input');
+  const btnSend = document.getElementById('btn-send');
+  if (input)   input.disabled = true;
+  if (btnSend) btnSend.disabled = true;
+  isWaitingResponse = true;
+
+  pendingSceneTimer = setTimeout(async () => {
+    pendingSceneTimer = null;
+
+    // Attendre la fin du TTS de la conclusion si demandé
+    if (waitForTTS) {
+      await new Promise(resolve => {
+        let elapsed = 0;
+        function check() {
+          elapsed += 150;
+          if (!isSpeaking || elapsed >= 12000) { resolve(); return; }
+          setTimeout(check, 150);
+        }
+        check();
+      });
+      await new Promise(r => setTimeout(r, 800)); // courte respiration après la voix
+    }
+
+    conversation.push({ role: 'user', content: 'GO scène suivante.' });
+    showTyping(true);
+    const reply = await callGroq();
+    showTyping(false);
+    if (input)   input.disabled = false;
+    if (btnSend) btnSend.disabled = false;
+    isWaitingResponse = false;
+    if (reply) {
+      appendMsg('cosmos', reply);
+      speakText(cleanForTTS(reply));
+      processMissionTokens(reply);
+      const clean = reply.replace(/\[[^\]]+\]/g, '').trim();
+      if (clean) ds.cliff_hanger = clean.slice(-180);
+      saveState();
+    }
+  }, delay);
+}
+
+// Pilotage LED automatique selon le contexte narratif
+function autoLED(text) {
+  const dest = DEST[currentDestId];
+  const t = text.toLowerCase();
+
+  // Mots-clés d'alerte → pulse rouge
+  const alerteKeys = ['alerte','danger','urgence','explosion','radiation','eruption','attention','critique','mourir','mort','panne','fuite'];
+  const succes = ['bravo','parfait','exact','genial','incroyable','victoire','bien joue','super'];
+
+  if (alerteKeys.some(k => t.includes(k))) {
+    sendLED('#ef5350', 'pulse');
+    SoundEngine.playEffect('alerte');
+  } else if (succes.some(k => t.includes(k))) {
+    sendLED('#66bb6a', 'comet');
+    SoundEngine.playEffect('victoire');
+  } else {
+    // Ambiance normale de la destination
+    sendLED(dest.led, 'breathe');
+  }
+}
+
+async function sendLED(color, fx) {
+  // 1. USB direct (Web Serial) — 2. repli bridge Python si non connecté
+  const sent = await SerialLED.send(color, fx);
+  if (!sent) {
+    const encoded = encodeURIComponent(color);
+    fetch(`${ESP32_URL}/led?color=${encoded}&fx=${fx}`, { mode:'no-cors' }).catch(() => {});
+  }
+  // Mise à jour indicateur UI
+  const led = document.getElementById('led-indicator');
+  led.style.background = color;
+  led.style.boxShadow  = '0 0 8px ' + color + ',0 0 16px ' + color;
+}
+
+function onStageComplete(destId, stageN, fullText) {
+  const ds   = state.destinations[destId];
+  const dest = DEST[destId];
+
+  if (ds.stages_done.includes(stageN)) return;
+  ds.stages_done.push(stageN);
+  ds.stage_turns      = 0;
+  ds.current_scene    = 0;       // reset scène pour la prochaine étape
+  ds.awaiting_conclusion = false; // reset mode conclusion
+  urgencyStatus     = 'AUCUNE';
+  urgencyTurns      = 0;
+  usedQuestionForms = [];
+  consecutiveSkips  = 0;
+  SoundEngine.playEffect('victoire');
+  sendLED('#66bb6a', 'warp');
+  setTimeout(() => sendLED('#66bb6a', 'rainbow'), 1200);
+
+  // Résumé structuré — évite de sauvegarder les phrases de victoire du LLM
+  const stageObj = dest.stages[stageN];
+  if (stageObj && stageObj.scenes) {
+    // Moteur 2 tours : résumé structuré, pas de texte brut GPT
+    ds.stage_summaries[stageN] = stageObj.name + ' (' + stageObj.scenes.length + ' scènes)';
+  } else {
+    // Moteur legacy : résumé à partir du texte GPT
+    const clean = fullText.replace(/\[.*?\]/g,'').trim();
+    ds.stage_summaries[stageN] = clean.slice(0, 120) + '...';
+  }
+
+  // Passe a l\'etape suivante
+  const nextStage = stageN + 1;
+  if (nextStage < dest.stages.length) {
+    ds.current_stage = nextStage;
+    ds.cliff_hanger = ''; // Nouvelle étape = nouvelle scène
+    conversation = []; // CRITIQUE : efface l'historique pour que COSMOS ne parte pas avec "mission terminée" en tête
+    showStageBanner('Etape ' + (stageN+1) + ' terminee ! -> ' + dest.stages[nextStage].name);
+    // Si la nouvelle étape utilise le moteur 2 tours, afficher le bouton Continuer
+    if (dest.stages[nextStage].scenes) {
+      sceneReady = true;
+      setTimeout(() => showContinueButton(destId), 1200); // petit délai pour laisser le banner
+    }
+  } else if (destId === 'iss') {
+    // L'ISS ne se "termine" jamais — nouveau cycle, même séjour
+    ds.current_stage = 0;
+    ds.stages_done = []; // Repart du début pour le prochain cycle
+    ds.cliff_hanger = '';
+    conversation = []; // Reset pour nouveau cycle ISS
+    showStageBanner('Belle journée à bord, commandant. 🛰️');
+    setTimeout(() => showDayEndPanel(ds.mission_day || 1), 3500);
+  } else {
+    // Destination terminee (toutes sauf ISS) !
+    ds.completed = true;
+    ds.current_stage = dest.stages.length - 1;
+    const badge = dest.emoji + ' ' + dest.name + ' conquise';
+    if (!state.badges.includes(badge)) state.badges.push(badge);
+    checkUnlocks();
+    showStageBanner('Mission ' + dest.name + ' accomplie ! 🏆 Badge debloque : ' + badge);
+    appendMsg('system-msg', 'Mission ' + dest.name + ' terminee ! Tu as gagne le badge : ' + badge);
+    // Bloquer l'input et proposer la suite après un délai
+    setTimeout(() => showMissionEndPanel(dest), 3500);
+  }
+
+  saveState();
+  updateMissionBar();
+}
+
+function showMissionEndPanel(dest) {
+  // Désactiver l'input chat
+  const input = document.getElementById('chat-input');
+  const btnSend = document.getElementById('btn-send');
+  if (input) input.disabled = true;
+  if (btnSend) btnSend.disabled = true;
+
+  // Insérer un panneau de fin dans le chat
+  const msgs = document.getElementById('messages');
+  const panel = document.createElement('div');
+  panel.style.cssText = 'text-align:center;padding:1.5rem 1rem;margin:1rem 0;background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.25);border-radius:16px;';
+  panel.innerHTML = `
+    <div style="font-size:2rem;margin-bottom:.5rem">${dest.emoji}</div>
+    <div style="color:#4fc3f7;font-weight:700;font-size:1.1rem;margin-bottom:.3rem">Mission ${dest.name} accomplie !</div>
+    <div style="color:#a0d8ef;font-size:.85rem;margin-bottom:1.2rem">Badge débloqué dans ta collection</div>
+    <button onclick="showDestinations()" style="background:linear-gradient(135deg,#1565c0,#0288d1);border:none;border-radius:50px;color:white;cursor:pointer;font-size:.9rem;font-weight:600;padding:.7rem 1.8rem;box-shadow:0 0 20px rgba(79,195,247,.3)">
+      🗺 Choisir la prochaine mission
+    </button>
+  `;
+  msgs.insertBefore(panel, document.getElementById('typing'));
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showDayEndPanel(missionDay) {
+  const input = document.getElementById('chat-input');
+  const btnSend = document.getElementById('btn-send');
+  if (input) input.disabled = true;
+  if (btnSend) btnSend.disabled = true;
+
+  const msgs = document.getElementById('messages');
+  const panel = document.createElement('div');
+  panel.style.cssText = 'text-align:center;padding:1.5rem 1rem;margin:1rem 0;background:rgba(0,191,255,.06);border:1px solid rgba(0,191,255,.2);border-radius:16px;';
+  panel.innerHTML = `
+    <div style="font-size:2rem;margin-bottom:.5rem">🛰️</div>
+    <div style="color:#4fc3f7;font-weight:700;font-size:1.1rem;margin-bottom:.3rem">Belle journée à bord, commandant.</div>
+    <div style="color:#a0d8ef;font-size:.85rem;margin-bottom:1.2rem">Jour ${missionDay} sur l'ISS — COSMOS t'attend demain.</div>
+    <button onclick="showDestinations()" style="background:linear-gradient(135deg,#1565c0,#0288d1);border:none;border-radius:50px;color:white;cursor:pointer;font-size:.9rem;font-weight:600;padding:.7rem 1.8rem;box-shadow:0 0 20px rgba(79,195,247,.3)">
+      🗺 Choisir une autre mission
+    </button>
+  `;
+  msgs.insertBefore(panel, document.getElementById('typing'));
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ====================================================
+// UI HELPERS
+// ====================================================
+function appendMsg(role, text) {
+  const msgs   = document.getElementById('messages');
+  const typing = document.getElementById('typing');
+  const clean  = text.replace(/\[.*?\]/g, '').trim();
+  const div    = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (role === 'cosmos') {
+    div.innerHTML = '<div class="sender">COSMOS</div>' + esc(clean);
+  } else if (role === 'system-msg') {
+    div.textContent = clean;
+  } else {
+    div.textContent = clean;
+  }
+  msgs.insertBefore(div, typing);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showTyping(v) {
+  document.getElementById('typing').classList.toggle('visible', v);
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function clearChat() {
+  const msgs = document.getElementById('messages');
+  Array.from(msgs.children).forEach(el => { if (el.id !== 'typing') el.remove(); });
+  conversation = [];
+}
+
+function updateMissionBar() {
+  if (!state) return;
+  const dest = DEST[currentDestId];
+  const ds   = state.destinations[currentDestId];
+  const si   = Math.min(ds.current_stage, dest.stages.length - 1);
+  const stage= dest.stages[si];
+
+  document.getElementById('led-indicator').style.background  = dest.led;
+  document.getElementById('led-indicator').style.boxShadow   = '0 0 8px ' + dest.led + ',0 0 16px ' + dest.led;
+  document.getElementById('mission-text').textContent = dest.name.toUpperCase();
+  document.getElementById('stage-badge').textContent = 'Etape ' + (si+1) + '/' + dest.stages.length + ' : ' + stage.name;
+  document.getElementById('ambient').style.background = dest.ambient;
+  document.documentElement.style.setProperty('--accent', dest.led);
+  document.documentElement.style.setProperty('--glow',   dest.led);
+}
+
+// ====================================================
+// MODULE LUMINEUX — Web Serial : USB direct depuis Chrome/Edge
+// (plus besoin du bridge Python ; il reste en repli si présent)
+// Même protocole que cosmos_bridge.py : "COLOR,FX\n" à 115200 baud
+// ====================================================
+const SerialLED = (() => {
+  let port = null, writer = null;
+  const supported = 'serial' in navigator;
+
+  function setBtn(connected) {
+    const b = document.getElementById('btn-serial');
+    if (!b) return;
+    b.textContent = connected ? '🔌✓' : '🔌';
+    b.style.color       = connected ? '#66bb6a' : '';
+    b.style.borderColor = connected ? 'rgba(102,187,106,.6)' : '';
+  }
+
+  async function open(p) {
+    await p.open({ baudRate: 115200 });
+    port = p;
+    writer = p.writable.getWriter();
+    setBtn(true);
+  }
+
+  // À appeler depuis un clic utilisateur (exigence du navigateur)
+  async function connect() {
+    if (!supported) {
+      showToast('USB direct non supporté ici — utilise Chrome ou Edge (ou lance le bridge Python)');
+      return false;
+    }
+    try {
+      const p = await navigator.serial.requestPort();
+      await open(p);
+      showToast('Module lumineux connecté ! ✨');
+      return true;
+    } catch(e) {
+      if (e.name !== 'NotFoundError') showToast('Connexion USB impossible : ' + e.message);
+      return false;
+    }
+  }
+
+  // Au chargement : reprendre automatiquement un port déjà autorisé
+  async function autoReconnect() {
+    if (!supported) return;
+    try {
+      const ports = await navigator.serial.getPorts();
+      if (ports.length) { await open(ports[0]); }
+    } catch(e) {}
+  }
+
+  async function disconnect() {
+    try { if (writer) { writer.releaseLock(); } if (port) { await port.close(); } } catch(e) {}
+    port = null; writer = null; setBtn(false);
+  }
+
+  async function send(color, fx) {
+    if (!writer) return false;
+    try {
+      await writer.write(new TextEncoder().encode(color + ',' + fx + '\n'));
+      return true;
+    } catch(e) {
+      await disconnect();
+      return false;
+    }
+  }
+
+  if (supported) {
+    navigator.serial.addEventListener('disconnect', e => {
+      if (e.target === port) {
+        port = null; writer = null; setBtn(false);
+        showToast('Module lumineux débranché');
+      }
+    });
+  }
+
+  return { connect, disconnect, autoReconnect, send, isConnected: () => !!writer, supported };
+})();
+
+async function toggleSerial() {
+  if (SerialLED.isConnected()) {
+    await SerialLED.disconnect();
+    showToast('Module lumineux déconnecté');
+  } else {
+    await SerialLED.connect();
+  }
+}
+
+// Repli : bridge Python USB (cosmos_bridge.py) si Web Serial indisponible
+const ESP32_URL = 'http://localhost:5000';
+
+function updateLED(color, texte) {
+  document.getElementById('mission-text').textContent = texte;
+  const fx = (color === '#ef5350') ? 'pulse' : 'solid';
+  sendLED(color, fx);
+}
+
+function showStageBanner(msg) {
+  const b = document.getElementById('stage-banner');
+  b.textContent = '🎯 ' + msg;
+  b.style.display = 'block';
+  setTimeout(() => { b.style.display = 'none'; }, 5000);
+}
+
+// ====================================================
+// TTS
+// ====================================================
+function cleanForTTS(text) {
+  return text.replace(/\[.*?\]/g,'').replace(/[*_~`]/g,'').trim();
+}
+
+function speakText(text) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  isSpeaking = true;
+  // Garder les 60 premiers caractères du TTS pour détecter les échos micro
+  lastTTSWords = text.toLowerCase().replace(/[.,!?]/g, '').trim().slice(0, 60);
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'fr-FR'; u.rate = 1.0; u.pitch = 1.0;
+  const voices = window.speechSynthesis.getVoices();
+  // Priorité : Google français (Chrome) > Amélie (Safari/Mac) > autres voix fr > Thomas en dernier (trop monotone)
+  const fr = voices.find(v => /google/i.test(v.name) && v.lang.startsWith('fr'))
+          || voices.find(v => v.lang.startsWith('fr') && /amelie|amélie/i.test(v.name))
+          || voices.find(v => v.lang.startsWith('fr') && /pierre|nicolas/i.test(v.name))
+          || voices.find(v => v.lang.startsWith('fr') && !/thomas/i.test(v.name))
+          || voices.find(v => v.lang.startsWith('fr'));
+  if (fr) u.voice = fr;
+  u.onend = () => {
+    isSpeaking = false;
+    isWaitingResponse = false;
+    if (voiceMode && !isListening) setTimeout(startRecognition, 1200);
+  };
+  u.onerror = () => {
+    isSpeaking = false;
+    isWaitingResponse = false;
+    if (voiceMode && !isListening) setTimeout(startRecognition, 1200);
+  };
+  window.speechSynthesis.speak(u);
+}
+
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.addEventListener('voiceschanged', () => window.speechSynthesis.getVoices());
+}
+
+// ====================================================
+// STT
+// ====================================================
+function startRecognition() {
+  if (isListening || isWaitingResponse || isSpeaking) return;
+  const btn = document.getElementById('btn-voice');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'fr-FR'; recognition.interimResults = false; recognition.maxAlternatives = 1;
+  recognition.onstart = () => { isListening=true; btn.classList.add('listening'); btn.textContent='⏹'; };
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    // Détection d'écho TTS : si le transcript ressemble au début du dernier message COSMOS, l'ignorer
+    const cleanTranscript = transcript.toLowerCase().replace(/[.,!?]/g, '').trim();
+    if (lastTTSWords && cleanTranscript.length > 5) {
+      const overlap = lastTTSWords.split(' ').filter(w => w.length > 4 && cleanTranscript.includes(w)).length;
+      if (overlap >= 3) {
+        // C'est un écho du TTS — ignorer et relancer le micro
+        isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+        if (voiceMode) setTimeout(startRecognition, 600);
+        return;
+      }
+    }
+    document.getElementById('chat-input').value = transcript;
+    isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+    sendMessage();
+  };
+  recognition.onerror = (e) => {
+    isListening = false; btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+    if (e.error !== 'aborted') showToast('Micro : ' + e.error);
+  };
+  recognition.onend = () => {
+    isListening = false;
+    btn.classList.remove('listening'); btn.textContent = voiceMode ? '🎙🔄' : '🎙';
+    // Ne relancer que si COSMOS n'est ni en train de traiter ni de parler
+    // Le redémarrage principal se fait depuis speakText.onend
+  };
+  recognition.start();
+}
+
+function toggleVoice() {
+  const btn = document.getElementById('btn-voice');
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Reconnaissance vocale non disponible sur ce navigateur'); return;
+  }
+  // Si mode vocal actif → on l'éteint
+  if (voiceMode) {
+    voiceMode = false;
+    recognition && recognition.stop();
+    isListening = false;
+    btn.classList.remove('listening'); btn.textContent = '🎙';
+    showToast('Mode vocal désactivé');
+    return;
+  }
+  // Activer le mode vocal
+  voiceMode = true;
+  btn.textContent = '🎙🔄';
+  showToast('Mode vocal activé — le micro se relance automatiquement !');
+  startRecognition();
+}
+
+// ====================================================
+// RESET TOTAL
+// ====================================================
+function resetAll() {
+  if (!confirm('Effacer tout et creer un nouveau commandant ?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  state = null; groqKey = ''; conversation = [];
+  showScreen('welcome');
+}
+
+// ====================================================
+// TOAST
+// ====================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display='block';
+  setTimeout(() => { t.style.display='none'; }, 4500);
+}
+
+// ====================================================
+// MOTEUR AUDIO — Web Audio API
+// ====================================================
+const SoundEngine = (() => {
+  let ctx = null;
+  let ambNode = null, ambGain = null;
+  let muted = false;
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  // Bruit blanc en buffer
+  function makeNoise(c, duration) {
+    const n = Math.ceil(c.sampleRate * duration);
+    const buf = c.createBuffer(1, n, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    return src;
+  }
+
+  function stopAmbient() {
+    if (!ambNode || !ctx) return;
+    try {
+      ambGain.gain.setTargetAtTime(0, ctx.currentTime, 0.6);
+      const n = ambNode;
+      setTimeout(() => { try { n.stop(); } catch(e) {} }, 1200);
+    } catch(e) {}
+    ambNode = null; ambGain = null;
+  }
+
+  // ——— AMBIANCES PAR DESTINATION ———
+
+  function ambLune() {
+    const c = getCtx();
+    // Sub-bass tres doux + LFO ultra lent = quasi-silence immersif
+    const o = c.createOscillator();
+    o.type = 'sine'; o.frequency.value = 38;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.04;
+    const lg = c.createGain(); lg.gain.value = 4;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const g = c.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.025, c.currentTime, 1.5);
+    o.connect(g); g.connect(c.destination);
+    lfo.start(); o.start();
+    ambNode = o; ambGain = g;
+  }
+
+  function ambMars() {
+    const c = getCtx();
+    // Vent : bruit filtre avec LFO sur frequence
+    const src = makeNoise(c, 4);
+    const filt = c.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 180; filt.Q.value = 0.7;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.12;
+    const lg = c.createGain(); lg.gain.value = 130;
+    lfo.connect(lg); lg.connect(filt.frequency);
+    const g = c.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.07, c.currentTime, 2);
+    src.connect(filt); filt.connect(g); g.connect(c.destination);
+    lfo.start(); src.start();
+    ambNode = src; ambGain = g;
+  }
+
+  function ambISS() {
+    const c = getCtx();
+    // Bourdonnement mecanique : harmoniques 60/120/180 Hz
+    const gains = [0.022, 0.012, 0.007];
+    const oscs = [60, 120, 180].map((f, i) => {
+      const o = c.createOscillator();
+      o.type = 'sine'; o.frequency.value = f;
+      const g = c.createGain(); g.gain.value = 0;
+      g.gain.setTargetAtTime(gains[i], c.currentTime, 1.5);
+      o.connect(g); g.connect(c.destination);
+      o.start(); return { o, g };
+    });
+    ambNode = oscs[0].o; ambGain = oscs[0].g;
+  }
+
+  function ambEuropa() {
+    const c = getCtx();
+    // Grave profond + delay = resonance aquatique
+    const o = c.createOscillator();
+    o.type = 'sine'; o.frequency.value = 28;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.07;
+    const lg = c.createGain(); lg.gain.value = 6;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const g = c.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.04, c.currentTime, 2);
+    const delay = c.createDelay(); delay.delayTime.value = 0.35;
+    const dg = c.createGain(); dg.gain.value = 0.45;
+    o.connect(g); g.connect(c.destination);
+    g.connect(delay); delay.connect(dg); dg.connect(c.destination);
+    lfo.start(); o.start();
+    ambNode = o; ambGain = g;
+  }
+
+  function ambTitan() {
+    const c = getCtx();
+    // Atmosphere dense : bruit lowpass epais
+    const src = makeNoise(c, 3);
+    const filt = c.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.value = 260;
+    const g = c.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.055, c.currentTime, 2);
+    src.connect(filt); filt.connect(g); g.connect(c.destination);
+    src.start();
+    ambNode = src; ambGain = g;
+  }
+
+  function ambSpace() {
+    const c = getCtx();
+    const o = c.createOscillator();
+    o.type = 'sine'; o.frequency.value = 50;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.03;
+    const lg = c.createGain(); lg.gain.value = 7;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const g = c.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.035, c.currentTime, 2);
+    o.connect(g); g.connect(c.destination);
+    lfo.start(); o.start();
+    ambNode = o; ambGain = g;
+  }
+
+  // ——— EFFETS SONORES ———
+
+  function fxAlert() {
+    const c = getCtx();
+    [0, 0.45, 0.9].forEach(t => {
+      const o = c.createOscillator();
+      o.type = 'square'; o.frequency.value = 900;
+      o.frequency.setTargetAtTime(440, c.currentTime + t + 0.1, 0.04);
+      const g = c.createGain(); g.gain.value = 0;
+      g.gain.setTargetAtTime(0.13, c.currentTime + t, 0.02);
+      g.gain.setTargetAtTime(0, c.currentTime + t + 0.38, 0.04);
+      o.connect(g); g.connect(c.destination);
+      o.start(c.currentTime + t);
+      o.stop(c.currentTime + t + 0.45);
+    });
+  }
+
+  function fxPropulsion() {
+    const c = getCtx();
+    const src = makeNoise(c, 2.5);
+    const filt = c.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.value = 500;
+    filt.frequency.setTargetAtTime(200, c.currentTime + 1, 0.5);
+    const g = c.createGain(); g.gain.value = 0.18;
+    g.gain.setTargetAtTime(0, c.currentTime + 1.8, 0.3);
+    src.connect(filt); filt.connect(g); g.connect(c.destination);
+    src.start(); src.stop(c.currentTime + 2.5);
+  }
+
+  function fxMystery() {
+    const c = getCtx();
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(180, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(720, c.currentTime + 1.8);
+    o.frequency.exponentialRampToValueAtTime(280, c.currentTime + 3.5);
+    const g = c.createGain(); g.gain.value = 0.07;
+    g.gain.setTargetAtTime(0, c.currentTime + 3, 0.3);
+    const delay = c.createDelay(); delay.delayTime.value = 0.22;
+    const dg = c.createGain(); dg.gain.value = 0.5;
+    o.connect(g); g.connect(c.destination);
+    g.connect(delay); delay.connect(dg); dg.connect(c.destination);
+    o.start(); o.stop(c.currentTime + 4);
+  }
+
+  function fxVictory() {
+    const c = getCtx();
+    [261, 329, 392, 523, 659, 784, 1046].forEach((freq, i) => {
+      const o = c.createOscillator();
+      o.type = 'triangle'; o.frequency.value = freq;
+      const g = c.createGain(); g.gain.value = 0;
+      g.gain.setTargetAtTime(0.1, c.currentTime + i * 0.11, 0.02);
+      g.gain.setTargetAtTime(0, c.currentTime + i * 0.11 + 0.22, 0.05);
+      o.connect(g); g.connect(c.destination);
+      o.start(c.currentTime + i * 0.11);
+      o.stop(c.currentTime + i * 0.11 + 0.35);
+    });
+  }
+
+  // API publique
+  return {
+    playAmbient(destId) {
+      if (muted) return;
+      stopAmbient();
+      try {
+        const fns = { lune:ambLune, mars:ambMars, iss:ambISS, europa:ambEuropa, titan:ambTitan };
+        (fns[destId] || ambSpace)();
+      } catch(e) {}
+    },
+    playEffect(type) {
+      if (muted) return;
+      try {
+        getCtx();
+        if (type==='alerte') fxAlert();
+        else if (type==='propulsion') fxPropulsion();
+        else if (type==='mystere') fxMystery();
+        else if (type==='victoire') fxVictory();
+      } catch(e) {}
+    },
+    unlock() { try { getCtx(); } catch(e) {} }, // appeler pendant un geste utilisateur
+    stop: stopAmbient,
+    toggle() { muted = !muted; if (muted) stopAmbient(); return muted; }
+  };
+})();
+
+// ====================================================
+// CSS dynamique alerte rouge
+// ====================================================
+const _s = document.createElement('style');
+_s.textContent = '@keyframes pulse-red{from{opacity:1}to{opacity:.3}}';
+document.head.appendChild(_s);
+</script>
+</body>
+</html>
